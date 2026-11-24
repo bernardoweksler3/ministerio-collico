@@ -187,8 +187,10 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
 
 <section id="prog" hidden>
   <h1>Programa</h1>
-  <p class="mu noimp">Completa cada horario y pulsa <b>Guardar día</b>. Cuando el día esté completo se pondrá verde.</p>
+  <p class="mu noimp">Se muestra el día de mañana. Usa los botones para agregar días antes o después. Completa cada horario y pulsa <b>Guardar día</b>; cuando el día esté completo se pondrá verde.</p>
+  <p class="noimp"><button class="s" id="zant" onclick="masDia(-1)">＋ Agregar día anterior</button></p>
     <div id="dias"></div>
+  <p class="noimp"><button class="s" id="zsig" onclick="masDia(1)">＋ Agregar día siguiente</button></p>
   <p class="noimp"><button onclick="pdf()">Exportar PDF</button></p>
   <p class="so" hidden><button class="pel" onclick="borrarTodo('Programa','todo el programa')">Borrar todo</button></p>
 </section>
@@ -379,16 +381,27 @@ async function prog(){
     return `<select aria-label="Punto de encuentro"><option value="">Punto de encuentro</option>${pu.map(x=>`<option${x==v?' selected':''}>${esc(x)}</option>`).join('')}<option value="__otro"${man?' selected':''}>✏️ Otra dirección…</option></select><input class="po" placeholder="Escribe la dirección" aria-label="Otra dirección de encuentro" value="${man?esc(v):''}"${man?'':' hidden'}>`};
   const opcCap=(k,t,v)=>{const of=[...(OFR[k+'|'+t]||[])].filter(n=>na.includes(n)).sort(),otros=na.filter(n=>!of.includes(n)),o=x=>`<option${x==v?' selected':''}>${esc(x)}</option>`;
     return `<select aria-label="Capitán"><option value="">Capitán</option>${of.length?`<optgroup label="Se ofrecieron">${of.map(o).join('')}</optgroup>`:''}${otros.length?`<optgroup label="${of.length?'Otros':'Todos'}">${otros.map(o).join('')}</optgroup>`:''}${v&&!na.includes(v)?o(v):''}</select>`};
-  for(let z=-1;z<=10;z++){
+  DIA=z=>{let h='';
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));
-    if(esFin(k)){h+=`<div class="dia fin" data-k="${k}"><h3>${fechaLarga(k)}</h3><div class="tn"><span class="mu">Arreglo por Grupo de Servicio</span></div></div>`;continue}
+    if(esFin(k))return `<div class="dia fin" data-k="${k}"><h3>${fechaLarga(k)}</h3><div class="tn"><span class="mu">Arreglo por Grupo de Servicio</span></div></div>`;
     h+=`<div class="dia" data-k="${k}"><h3>${fechaLarga(k)}</h3>`;
     for(const t of turnos(k)){
       const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
       h+=`<div class="tn" data-k="${k}" data-t="${t}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><b>${t}</b>${opcPunto(r.punto)}${opcCap(k,t,r.capitan)}<button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button></div>`}
     h+='<div class="tn gd"><button onclick="guardarDia(this)">Guardar día</button></div></div>';
-  }
-  box.innerHTML=h;marcar();tarde();
+    return h};
+  ZMIN=Math.min(ZMIN,1);ZMAX=Math.max(ZMAX,1);
+  for(let z=ZMIN;z<=ZMAX;z++)h+=DIA(z);
+  box.innerHTML=h;marcar();tarde();zbot();
+}
+let DIA=null,ZMIN=1,ZMAX=1;
+function zbot(){$('#zant').disabled=ZMIN<=-1;$('#zsig').disabled=ZMAX>=10}
+function masDia(s){
+  if(!DIA)return;
+  const box=$('#dias');
+  if(s<0){if(ZMIN<=-1)return;ZMIN--;box.insertAdjacentHTML('afterbegin',DIA(ZMIN));box.firstElementChild.scrollIntoView({behavior:'smooth',block:'nearest'})}
+  else{if(ZMAX>=10)return;ZMAX++;box.insertAdjacentHTML('beforeend',DIA(ZMAX));box.lastElementChild.scrollIntoView({behavior:'smooth',block:'nearest'})}
+  marcar();tarde();zbot();
 }
 const comp=(k,t)=>{const r=PRG.find(x=>x.fecha==k&&x.turno==t);return !!(r&&r.punto&&r.capitan&&r.territorios)};
 const listo=k=>!esFin(k)&&comp(k,'10:00')&&(turnos(k)===JUE||comp(k,'18:00')||comp(k,'19:00'));
