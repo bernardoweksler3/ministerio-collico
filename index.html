@@ -35,6 +35,10 @@ summary{cursor:pointer;font-weight:600;color:var(--az);margin:6px 0}
 .tn{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:7px 12px;border-top:1px solid var(--bd)}
 .tn:first-child{border-top:0}
 .tn b{min-width:52px}.tn span{flex:1 1 110px}
+.dia.ok{border-color:var(--v)}
+.dia.ok h3{background:var(--v);color:#fff}
+.dia.ok h3::after{content:'  ✓ Listo'}
+.tn.ok b::after{content:' ✓';color:var(--v)}
 .tn input{flex:1 1 130px;width:auto;padding:5px 8px}
 .tn select{flex:1 1 150px;width:auto;padding:5px 8px}
 .tn small{flex:1 1 100%;color:var(--mu);font-size:13px}
@@ -69,14 +73,25 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 .tr .l{width:90px;padding:4px 8px}
 footer{margin-top:28px;text-align:center;font-size:13px}
 footer a{color:var(--mu);cursor:pointer}
-#pdf{display:none;color:#000;background:#fff}
-#pdf h1,#pdf h2{text-align:center;margin:0;letter-spacing:1px}
-#pdf h1{font-size:24px}#pdf h2{font-size:18px;margin-bottom:14px;color:#444}
-#pdf table{width:100%;border-collapse:collapse;font-size:14px}
-#pdf th{background:#17445c;color:#fff;text-align:left;padding:7px 8px;border:1px solid #17445c}
-#pdf td{padding:6px 8px;border:1px solid #cfd6dc;vertical-align:top}
-#pdf tr.am td{background:#fff7cc}
-#pdf tr.nd td{border-top:2px solid #17445c}
+#pdf{display:none;color:#1c2429;background:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#pdf .ph{background:linear-gradient(135deg,#14465e,#1f7a99);color:#fff;border-radius:12px;padding:18px 16px;text-align:center;margin-bottom:14px}
+#pdf h1{margin:0;font-size:26px;letter-spacing:2px;font-weight:800}
+#pdf h2{margin:4px 0 0;font-size:16px;letter-spacing:4px;font-weight:600;opacity:.92}
+#pdf .rg{margin-top:8px;font-size:13px;opacity:.85}
+#pdf table{width:100%;border-collapse:collapse;font-size:13px}
+#pdf th{background:#14465e;color:#fff;text-align:left;padding:8px 10px;font-size:12px;letter-spacing:.5px;text-transform:uppercase}
+#pdf th:first-child{border-radius:8px 0 0 0}#pdf th:last-child{border-radius:0 8px 0 0}
+#pdf td{padding:8px 10px;border-bottom:1px solid #e3d9a6;vertical-align:top}
+#pdf tr.am td{background:#fff8d6}
+#pdf tr.nd td{border-top:2.5px solid #14465e}
+#pdf td.f{background:#e3eef3;color:#14465e;font-weight:800;border-right:2px solid #14465e;width:96px}
+#pdf .hr{display:inline-block;background:#14465e;color:#fff;border-radius:20px;padding:2px 10px;font-weight:700;font-size:12px}
+#pdf .tc{display:block;margin-bottom:3px}
+#pdf .tc b{display:inline-block;min-width:22px;color:#14465e}
+#pdf .tc i{color:#6b5a14;font-style:normal;font-size:12px}
+#pdf .dir{color:#5b6a76;font-size:12px}
+#pdf .pie{margin-top:12px;text-align:center;color:#6b7a82;font-size:11px}
+@page{size:A4;margin:12mm}
 @media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{background:#fff}header,.tabs,footer,.noimp{display:none}main{max-width:none;padding:0}main>section{border:0;box-shadow:none;padding:0}.dia{break-inside:avoid}body.imp header,body.imp main{display:none}body.imp #pdf{display:block}}
 </style>
 <script>try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.t='light'}</script>
@@ -95,11 +110,9 @@ footer a{color:var(--mu);cursor:pointer}
 <section id="cap">
   <h2>Disponibilidad para ser capitán</h2>
   <label for="nombre">Nombre</label><select id="nombre"></select>
-  <label>¿Qué días puedes ser capitán?</label>
-  <p>Toca los días en que puedes. Para quitar uno, vuelve a tocarlo.</p>
   <div class="nav"><button class="s" onclick="cmes(-1)">‹</button><h2 id="cmes"></h2><button class="s" onclick="cmes(1)">›</button></div>
   <div id="cal" class="cal"></div>
-  <p class="ley"><span><i class="sw v"></i>Día completo</span><span><i class="sw a"></i>Queda un horario disponible</span><span><i class="sw g"></i>Sin capitán</span><span><i class="sw w"></i>Sábado y domingo</span></p>
+  <p class="ley"><span><i class="sw v"></i>Día completo</span><span><i class="sw a"></i>Queda un horario disponible</span><span><i class="sw g"></i>Sin capitán</span></p>
   <p id="resumen"></p>
   <div id="hd"></div>
   <label>Modalidad de predicación</label>
@@ -251,11 +264,16 @@ async function cpw(){
 async function ubor(n){if(confirm('¿Borrar a '+n+'?')){await llamar('usuarioBorrar',{nuevo:n});vacc()}}
 
 /* Puntos de encuentro y Territorios */
+const lim=z=>{z=String(z??'').trim();const a=z.replace(/\s*[-–—]\s*Territorio\b.*$/i,'');return (a!=z?a:z.split(/\s+[-–—]\s+/)[0]).trim()};
 async function lista(h,sel){
   const box=$(sel);box.textContent='Cargando…';
   let L;try{L=await llamar('listar',{hoja:h})}catch(e){box.textContent='No se pudo cargar.';return}
   if(!Array.isArray(L))return;
-  if(h=='Territorios')L.sort((a,b)=>a.numero-b.numero);
+  if(h=='Territorios'){
+    L.sort((a,b)=>a.numero-b.numero);
+    const sucio=L.filter(x=>lim(x.zona)!=x.zona);
+    if(sucio.length){await llamar('territoriosCargar',{filas:sucio.map(x=>({numero:x.numero,zona:lim(x.zona)}))});sucio.forEach(x=>x.zona=lim(x.zona))}
+  }
   const fila=(f,nuevo)=>`<div class="dia" data-id="${esc(f.id)}"><div class="tn">`+CAMPOS[h].map(([c,t])=>`<input placeholder="${t}" aria-label="${t}" data-c="${c}" value="${esc(f[c])}">`).join('')+
     `<button onclick="gfila(this,'${h}')">${nuevo?'Agregar':'Guardar'}</button>${nuevo?'':`<button class="s" onclick="bfila(this,'${h}')">Borrar</button>`}</div></div>`;
   box.innerHTML=L.map(f=>fila(f)).join('')+'<h3>Agregar nuevo</h3>'+fila({},true);
@@ -281,19 +299,26 @@ async function prog(){
   for(let z=-1;z<=10;z++){
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));
     const cp=t=>((P.find(x=>x.fecha==k&&x.turno==t)||{}).capitan||'').trim();
-    h+=`<div class="dia"><h3>${fechaLarga(k)}</h3>`;
+    h+=`<div class="dia" data-k="${k}"><h3>${fechaLarga(k)}</h3>`;
     for(const t of turnos(k)){
       const o=t=='18:00'?'19:00':t=='19:00'?'18:00':'';
       if(o&&turnos(k)===SEM&&!cp(t)&&cp(o))continue;
       const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
-      h+=`<div class="tn" data-k="${k}" data-t="${t}" data-ter="${esc(r.territorios)}"><b>${t}</b>${opc(pu,r.punto,'Punto de encuentro')}${opc(na,r.capitan,'Capitán')}<button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button><input placeholder="Nota" aria-label="Nota" value="${esc(r.nota)}"><button onclick="guardar(this)">Guardar</button></div>`}
+      h+=`<div class="tn" data-k="${k}" data-t="${t}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><b>${t}</b>${opc(pu,r.punto,'Punto de encuentro')}${opc(na,r.capitan,'Capitán')}<button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button><button onclick="guardar(this)">Guardar</button></div>`}
     h+='</div>';
   }
-  box.innerHTML=h;
+  box.innerHTML=h;marcar();
 }
+const comp=(k,t)=>{const r=PRG.find(x=>x.fecha==k&&x.turno==t);return !!(r&&r.punto&&r.capitan&&r.territorios)};
+const listo=k=>esFin(k)?FIN.every(t=>comp(k,t)):comp(k,'10:00')&&(comp(k,'18:00')||comp(k,'19:00'));
+function marcar(){
+  $d.querySelectorAll('#dias .dia').forEach(d=>{d.classList.toggle('ok',listo(d.dataset.k));d.querySelectorAll('.tn').forEach(r=>r.classList.toggle('ok',comp(r.dataset.k,r.dataset.t)))});
+}
+$('#dias').addEventListener('change',e=>{const b=e.target.closest('.tn')?.querySelector('button:last-child');if(b)b.textContent='Guardar'});
 async function guardar(b){
   const e=b.parentNode,s=e.querySelectorAll('select'),t=e.dataset.t,k=e.dataset.k;b.disabled=true;
-  try{const r=await llamar('guardar',{hoja:'Programa',fila:{fecha:k,turno:t,punto:s[0].value,capitan:s[1].value,territorios:e.dataset.ter||'',nota:e.querySelector('input').value}});
+  try{const r=await llamar('guardar',{hoja:'Programa',fila:{fecha:k,turno:t,punto:s[0].value,capitan:s[1].value,territorios:e.dataset.ter||'',nota:e.dataset.nota||''}});
+    if(r.ok){const f={fecha:k,turno:t,punto:s[0].value,capitan:s[1].value,territorios:e.dataset.ter||'',nota:e.dataset.nota||''},i=PRG.findIndex(x=>x.fecha==k&&x.turno==t);i<0?PRG.push(f):PRG[i]=f;marcar()}
     if(r.ok&&(t=='18:00'||t=='19:00')&&turnos(k)===SEM)return prog();
     b.textContent=r.ok?'✓ Guardado':'Error';
   }catch(x){b.textContent='Error'}
@@ -302,15 +327,15 @@ async function guardar(b){
 function abrirT(b){
   CUR=b.closest('.tn');const m=Object.fromEntries(parseT(CUR.dataset.ter));
   $('#dtl').innerHTML=TER.length?TER.map(x=>{const n=String(x.numero);
-    return `<div class="tr"><label><input type="checkbox" data-n="${esc(n)}"${n in m?' checked':''}> ${esc(n)} ${esc(x.zona)}</label><input class="l" placeholder="Letras" aria-label="Letras de las manzanas del territorio ${esc(n)}" value="${esc(m[n]||'')}" oninput="this.parentNode.querySelector('[type=checkbox]').checked=true"></div>`}).join(''):'<p>Aún no hay territorios. Cárgalos en la pestaña Territorios.</p>';
+    return `<div class="tr"><label><input type="checkbox" data-n="${esc(n)}"${n in m?' checked':''}> ${esc(n)} ${esc(lim(x.zona))}</label><input class="l" placeholder="Letras" aria-label="Letras de las manzanas del territorio ${esc(n)}" value="${esc(m[n]||'')}" oninput="this.parentNode.querySelector('[type=checkbox]').checked=true"></div>`}).join(''):'<p>Aún no hay territorios. Cárgalos en la pestaña Territorios.</p>';
   $('#dt').showModal();
 }
 function dtok(){
   const L=[...$d.querySelectorAll('#dtl .tr')].filter(r=>r.querySelector('[type=checkbox]').checked).map(r=>{const n=r.querySelector('[type=checkbox]').dataset.n,l=r.querySelector('.l').value.toUpperCase().replace(/[^A-ZÑ]/g,'');return n+(l?':'+l:'')});
-  CUR.dataset.ter=L.join(';');CUR.querySelector('.s').textContent=terrTxt(CUR.dataset.ter);$('#dt').close();
+  CUR.dataset.ter=L.join(';');CUR.querySelector('.s').textContent=terrTxt(CUR.dataset.ter);CUR.querySelector('button:last-child').textContent='Guardar';$('#dt').close();
 }
 function pdf(){
-  const nt=n=>{const t=TER.find(x=>String(x.numero)==n);return t?n+' '+t.zona:n};
+  const nt=n=>{const t=TER.find(x=>String(x.numero)==n);return `<b>${esc(n)}</b> ${t?esc(lim(t.zona)):''}`};
   const F=[];
   for(let d=0;d<=10;d++){
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+d));
@@ -319,16 +344,20 @@ function pdf(){
   if(!F.length)return alert('Todavía no hay datos en el programa para exportar.');
   const fc=k=>{const d=new Date(k+'T12:00');return `${DS[d.getDay()]} ${d.getDate()}/${String(d.getMonth()+1).padStart(2,'0')}`};
   const C=[{t:'Punto de encuentro',f:'punto'},{t:'Capitán',f:'capitan'},{t:'Territorio',f:'territorios'}].filter(c=>F.some(x=>x.r[c.f]));
-  const cel=(c,r)=>c.f=='territorios'?parseT(r.territorios).map(([n,l])=>esc(nt(n))+(l?' ('+l.split('').join(', ')+')':'')).join('<br>')
-    :c.f=='punto'?(()=>{const p=PUN.find(x=>x.nombre==r.punto);return esc(r.punto)+(p&&p.direccion?'<br>'+esc(p.direccion):'')})():esc(r[c.f]);
-  let ant='',h='<h1>PROGRAMA DE PREDICACIÓN</h1><h2>CONGREGACIÓN COLLICO</h2><table><thead><tr><th>Fecha</th><th>Horario</th>'+C.map(c=>`<th>${c.t}</th>`).join('')+'</tr></thead><tbody>';
-  F.forEach(({k,t,r},i)=>{h+=`<tr class="${i%2?'':'am'}${k!=ant?' nd':''}"><td>${k!=ant?fc(k):''}</td><td>${t}</td>${C.map(c=>`<td>${cel(c,r)}</td>`).join('')}</tr>`;ant=k});
-  $('#pdf').innerHTML=h+'</tbody></table>';
+  const cel=(c,r)=>c.f=='territorios'?parseT(r.territorios).map(([n,l])=>`<span class="tc">${nt(n)}${l?` <i>· Manzanas ${l.split('').join(', ')}</i>`:''}</span>`).join('')
+    :c.f=='punto'?(()=>{const p=PUN.find(x=>x.nombre==r.punto);return esc(r.punto)+(p&&p.direccion?`<br><span class="dir">${esc(p.direccion)}</span>`:'')})():`<b>${esc(r[c.f])}</b>`;
+  const G={};F.forEach(x=>(G[x.k]??=[]).push(x));
+  let i=0,b='';
+  Object.keys(G).sort().forEach(k=>G[k].forEach((x,j)=>{
+    b+=`<tr class="${i++%2?'':'am'}${j==0?' nd':''}">${j==0?`<td class="f" rowspan="${G[k].length}">${fc(k)}</td>`:''}<td><span class="hr">${x.t}</span></td>${C.map(c=>`<td>${cel(c,x.r)}</td>`).join('')}</tr>`;
+  }));
+  const ks=Object.keys(G).sort();
+  $('#pdf').innerHTML=`<div class="ph"><h1>PROGRAMA DE PREDICACIÓN</h1><h2>CONGREGACIÓN COLLICO</h2><div class="rg">${ks.length>1?fc(ks[0])+' al '+fc(ks[ks.length-1]):fc(ks[0])}</div></div><table><thead><tr><th>Fecha</th><th>Horario</th>${C.map(c=>`<th>${c.t}</th>`).join('')}</tr></thead><tbody>${b}</tbody></table><p class="pie">Generado el ${fechaLarga(f2(hoy))}</p>`;
   $d.body.classList.add('imp');print();
 }
 onafterprint=()=>$d.body.classList.remove('imp');
 async function tcargar(){
-  const filas=$('#tl').value.split('\n').map(l=>l.trim().match(/^(\d+)\s*[-–.:,;\t ]\s*(.+)$/)).filter(Boolean).map(m=>({numero:m[1],zona:m[2].trim()}));
+  const filas=$('#tl').value.split('\n').map(l=>l.trim().match(/^(\d+)\s*[-–.:,;\t ]\s*(.+)$/)).filter(Boolean).map(m=>({numero:m[1],zona:lim(m[2])}));
   if(!filas.length)return alert('No encontré líneas con número y nombre.');
   const r=await llamar('territoriosCargar',{filas});
   if(r.ok){$('#tl').value='';alert('Listo: '+filas.length+' territorios cargados.');ir('ter')}else alert('No se pudo cargar la lista.');
