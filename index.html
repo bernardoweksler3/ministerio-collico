@@ -134,6 +134,8 @@ footer a{color:var(--mu);cursor:pointer}
 #lreg label input{flex:none;width:22px;height:22px;margin-top:1px}
 #lreg .rf{border-top:1px solid var(--bd);padding:6px 0}
 #lreg .rf:first-of-type{border-top:0}
+#cap #nombre{margin-bottom:26px}
+#cap .nav{margin-top:6px;margin-bottom:10px}
 #lreg .lk{opacity:.7}
 #lreg details.otro{margin:6px 0 2px}
 #dlt>summary{font-size:1.05em;margin:10px 0}
@@ -268,6 +270,9 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
     <label for="nu">Nuevo usuario</label><input id="nu" autocapitalize="off">
     <p><button onclick="uadd()">Agregar usuario</button></p>
     <p class="mu">Los usuarios nuevos entran con la contraseña provisoria <b>12345678</b> y el sistema les pide cambiarla de inmediato. Si escribes un usuario que ya existe, su contraseña vuelve a la provisoria.</p>
+    <h2>Empezar de nuevo</h2>
+    <p class="mu">Borra todos los ofrecimientos y todo lo ingresado en el Programa, y reinicia las estadísticas. <b>No</b> borra los nombres de capitanes, los usuarios, los territorios, los puntos de encuentro ni el registro S-13.</p>
+    <p><button class="pel" onclick="limpiarTodo(this)">Limpiar ofrecimientos, programa y estadísticas</button></p>
     <h2>Nombres para capitanes</h2>
     <div class="dia" id="ln"></div>
     <label for="nn">Nuevo nombre</label><input id="nn">
@@ -500,32 +505,39 @@ function regDibujar(){
   for(let z=0;z>=-21;z--){
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));
     const R=PRG.filter(x=>x.fecha==k&&(x.capitan||x.punto||x.territorios)).sort((a,b)=>a.turno.localeCompare(b.turno));
-    const E=ASG.filter(a=>String(a.id).startsWith('p|'+k+'|otro|'));
+    const E=ASG.filter(a=>String(a.id).startsWith('p|'+k+'|')&&String(a.id).includes('|otro|'));
     if(R.length||E.length)dias.push([k,R,E]);
   }
   const zona=n=>{const t=TER.find(x=>String(x.numero)==String(n));return t?lim(t.zona):''};
-  $('#lreg').innerHTML=dias.length?dias.map(([k,R,E])=>`<div class="dia"><h3>${fechaLarga(k)}</h3>`+R.map(r=>{
-    const cap=esFin(k)?grTxt(r.capitan):String(r.capitan||'').trim();
-    return `<div class="rf"><div class="mu"><b>${hh(r.turno)}</b>${r.punto?' · '+esc(r.punto):''}${cap?' · '+esc(cap):''}</div>`+parseT(r.territorios).map(([n,l])=>{
-      const id='p|'+k+'|'+r.turno+'|'+n,rec=ASG.find(a=>String(a.numero)==String(n)&&a.asignado==k),lock=rec&&rec.id!=id;
-      return `<label class="${lock?'lk':''}"><input type="checkbox" data-k="${k}" data-t="${esc(r.turno)}" data-n="${esc(n)}" data-l="${esc(l)}" data-cap="${esc(cap)}"${rec?' checked':''}${lock?' disabled':''}><span>Territorio ${esc(n)} ${esc(zona(n))}${l?` <small>(manzanas ${esc(l.split('').join(', '))})</small>`:''}${lock?' <small>· ya está en el S-13</small>':''}</span></label>`}).join('')+'</div>'}).join('')+
-    (E.length?`<div class="rf"><div class="mu"><b>Otros territorios</b></div>`+E.map(a=>`<label><input type="checkbox" data-k="${k}" data-t="otro" data-n="${esc(a.numero)}" data-l="${esc(String(a.nota||'').replace(/[^A-Za-z]/g,''))}" data-cap="${esc(a.nombre)}" checked><span>Territorio ${esc(a.numero)} ${esc(zona(a.numero))}${a.nota?` <small>(manzanas ${esc(a.nota)})</small>`:''}${a.nombre?` <small>· ${esc(a.nombre)}</small>`:''}</span></label>`).join('')+'</div>':'')+
-    `<details class="otro"><summary>＋ Otro territorio</summary><div class="tn"><select class="ot-n" aria-label="Territorio trabajado"><option value="">Territorio…</option>${TER.map(x=>`<option value="${esc(x.numero)}">${esc(x.numero)} ${esc(lim(x.zona))}</option>`).join('')}</select><input class="ot-c" placeholder="Asignado a" aria-label="Asignado a" value="${esc(R.map(r=>esFin(k)?grTxt(r.capitan):String(r.capitan||'').trim()).find(Boolean)||'')}"><input class="ot-l" placeholder="Letras (opcional)" aria-label="Letras de las manzanas" maxlength="12"><button data-k="${k}" onclick="regOtro(this)">Agregar</button></div></details></div>`).join(''):'<p>No hay programas en los últimos 21 días.</p>';
+  const capDe=(k,r)=>esFin(k)?grTxt(r.capitan):String(r.capitan||'').trim();
+  const extra=(a,k,t)=>`<label><input type="checkbox" data-id="${esc(a.id)}" data-k="${k}" data-t="${esc(t)}" data-n="${esc(a.numero)}" data-l="${esc(String(a.nota||'').replace(/[^A-Za-z]/g,''))}" data-cap="${esc(a.nombre)}" checked><span>Territorio ${esc(a.numero)} ${esc(zona(a.numero))}${a.nota?` <small>(manzanas ${esc(a.nota)})</small>`:''}${a.nombre?` <small>· ${esc(a.nombre)}</small>`:''} <small>· otro territorio</small></span></label>`;
+  $('#lreg').innerHTML=dias.length?dias.map(([k,R,E])=>{
+    const usados=new Set();
+    const filas=R.map(r=>{
+      const cap=capDe(k,r),pref='p|'+k+'|'+r.turno+'|otro|';
+      const ex=E.filter(a=>String(a.id).startsWith(pref));ex.forEach(a=>usados.add(a.id));
+      return `<div class="rf"><div class="mu"><b>${hh(r.turno)}</b>${r.punto?' · '+esc(r.punto):''}${cap?' · '+esc(cap):''}</div>`+parseT(r.territorios).map(([n,l])=>{
+        const id='p|'+k+'|'+r.turno+'|'+n,rec=ASG.find(a=>String(a.numero)==String(n)&&a.asignado==k),lock=rec&&rec.id!=id;
+        return `<label class="${lock?'lk':''}"><input type="checkbox" data-k="${k}" data-t="${esc(r.turno)}" data-n="${esc(n)}" data-l="${esc(l)}" data-cap="${esc(cap)}"${rec?' checked':''}${lock?' disabled':''}><span>Territorio ${esc(n)} ${esc(zona(n))}${l?` <small>(manzanas ${esc(l.split('').join(', '))})</small>`:''}${lock?' <small>· ya está en el S-13</small>':''}</span></label>`}).join('')
+      +ex.map(a=>extra(a,k,r.turno)).join('')
+      +`<details class="otro"><summary>＋ Otro territorio</summary><div class="tn"><select class="ot-n" aria-label="Territorio trabajado"><option value="">Territorio…</option>${TER.map(x=>`<option value="${esc(x.numero)}">${esc(x.numero)} ${esc(lim(x.zona))}</option>`).join('')}</select><input class="ot-c" placeholder="Asignado a" aria-label="Asignado a" value="${esc(cap)}"><input class="ot-l" placeholder="Letras (opcional)" aria-label="Letras de las manzanas" maxlength="12"><button data-k="${k}" data-t="${esc(r.turno)}" onclick="regOtro(this)">Agregar</button></div></details></div>`}).join('');
+    const sueltos=E.filter(a=>!usados.has(a.id));
+    return `<div class="dia"><h3>${fechaLarga(k)}</h3>${filas}${sueltos.length?`<div class="rf"><div class="mu"><b>Otros territorios</b></div>${sueltos.map(a=>extra(a,k,'otro')).join('')}</div>`:''}</div>`}).join(''):'<p>No hay programas en los últimos 21 días.</p>';
   regExp();
 }
 $('#lreg').addEventListener('change',e=>{if(e.target.matches('input[type=checkbox]'))regGuardar(e.target)});
 async function regOtro(b){
-  const w=b.closest('.tn'),k=b.dataset.k,n=w.querySelector('.ot-n').value,cap=w.querySelector('.ot-c').value.trim(),l=w.querySelector('.ot-l').value.toUpperCase().replace(/[^A-Z]/g,'');
+  const w=b.closest('.tn'),k=b.dataset.k,t=b.dataset.t,n=w.querySelector('.ot-n').value,cap=w.querySelector('.ot-c').value.trim(),l=w.querySelector('.ot-l').value.toUpperCase().replace(/[^A-Z]/g,'');
   if(!n)return toast('Elige el territorio que se trabajó.',1);
   if(ASG.some(a=>String(a.numero)==String(n)&&a.asignado==k))return toast('Ese territorio ya está registrado ese día.',1);
-  const f={id:'p|'+k+'|otro|'+n,numero:n,nombre:cap,asignado:k,completado:l?'':k,nota:l?l.split('').join(', '):''};
+  const f={id:'p|'+k+'|'+t+'|otro|'+n,numero:n,nombre:cap,asignado:k,completado:l?'':k,nota:l?l.split('').join(', '):''};
   b.disabled=true;
   try{const r=await llamar('guardar',{hoja:'Asignaciones',fila:f});if(!r.ok)throw 0;ASG=ASG.concat(f);toast('✓ Anotado en el S-13');regDibujar()}
   catch(e){toast('No se pudo guardar. Intenta de nuevo.',1)}
   b.disabled=false;
 }
 async function regGuardar(cb){
-  const {k,t,n,l,cap}=cb.dataset,id='p|'+k+'|'+t+'|'+n;
+  const {k,t,n,l,cap}=cb.dataset,id=cb.dataset.id||'p|'+k+'|'+t+'|'+n;
   cb.disabled=true;
   try{
     if(cb.checked){
@@ -567,6 +579,16 @@ async function s13Descargar(b){
 function tema(){const t=$d.documentElement.dataset.t=='dark'?'light':'dark';$d.documentElement.dataset.t=t;try{localStorage.t=t}catch(e){}ico()}
 const ico=()=>{$('#tm').textContent=$d.documentElement.dataset.t=='dark'?'☀️ Claro':'🌙 Oscuro'};
 function peligro(m){return prompt(m+'\n\nEsta acción no se puede deshacer. Escribe BORRAR para confirmar.')==='BORRAR'}
+async function limpiarTodo(b){
+  if(!peligro('Vas a borrar todos los ofrecimientos y todo el Programa, y a reiniciar las estadísticas. Se conservan nombres de capitanes, usuarios, territorios, puntos de encuentro y el registro S-13.'))return;
+  b.disabled=true;
+  try{
+    for(const hoja of ['Inscripciones','Programa']){const r=await llamar('borrarTodo',{hoja});if(!r.ok)throw 0}
+    const r=await llamar('statsReiniciar');if(!r.ok)throw 0;
+    VIS.clear();VIS.add(1);PRG=[];toast('✓ Listo: ofrecimientos, programa y estadísticas limpios');
+  }catch(e){toast('No se pudo limpiar todo. Intenta de nuevo.',1)}
+  b.disabled=false;
+}
 async function borrarTodo(hoja,t){
   if(!peligro('Vas a borrar '+t+'.'))return;
   const r=await llamar('borrarTodo',{hoja});
