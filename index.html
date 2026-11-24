@@ -1,19 +1,157 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mi primera app</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin-top: 80px; }
-    button { font-size: 18px; padding: 10px 20px; cursor: pointer; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Servicio de predicación</title>
+<style>
+:root{--az:#17445c;--az2:#e6eef3;--tx:#1c2429;--bd:#c5d2da}
+*{box-sizing:border-box}
+body{margin:0;font:19px/1.5 Verdana,Geneva,sans-serif;color:var(--tx);background:#fff}
+header{background:var(--az);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header a{color:#fff;font-weight:bold;text-decoration:none;cursor:pointer}
+main{max-width:760px;margin:0 auto;padding:18px}
+button{font:inherit;padding:10px 16px;border:2px solid var(--az);background:var(--az);color:#fff;border-radius:8px;cursor:pointer}
+button.s{background:#fff;color:var(--az)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #e0a100;outline-offset:2px}
+.grande{display:block;width:100%;padding:34px 16px;margin:16px 0;font-size:26px;text-align:left}
+.grande small{display:block;font-size:16px;font-weight:normal;opacity:.85}
+label{display:block;margin:12px 0 4px;font-weight:bold}
+input,select{font:inherit;width:100%;padding:10px;border:2px solid var(--bd);border-radius:8px}
+.dia{border:1px solid var(--bd);border-radius:8px;margin:12px 0;overflow:hidden}
+.dia h3{margin:0;padding:8px 12px;background:var(--az2);text-transform:capitalize;font-size:18px}
+.tn{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 12px;border-top:1px solid var(--bd)}
+.tn b{min-width:58px}.tn span{flex:1 1 120px}.tn input{flex:1 1 140px;width:auto;padding:6px}
+.nav{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.nav h2{text-transform:capitalize;margin:0}
+#ok{font-weight:bold;color:var(--az);margin-top:12px}
+@media print{header,.nav button,.noimp{display:none}main{max-width:none;padding:0}.dia{break-inside:avoid}}
+</style>
 </head>
 <body>
-  <h1>¡Hola, esta es mi primera app!</h1>
-  <p id="mensaje">Haz clic en el botón</p>
-  <button onclick="document.getElementById('mensaje').innerText = '¡Funciona!'">
-    Probar
-  </button>
+<header>
+  <a onclick="ir('inicio')">Servicio de predicación</a>
+  <a id="acc" onclick="acceso()">Soy el superintendente</a>
+</header>
+<main>
+<section id="inicio">
+  <button class="grande" onclick="ir('cap')">Capitanes<small>Inscribirse para dirigir un grupo</small></button>
+  <button class="grande" onclick="ir('prog')">Programas<small>Ver el programa del mes</small></button>
+</section>
+
+<section id="cap" hidden>
+  <button class="s" onclick="ir('inicio')">‹ Inicio</button>
+  <h2>Inscribirme como capitán</h2>
+  <form id="f">
+    <label for="fecha">Día</label><input type="date" id="fecha" name="fecha" required>
+    <label for="turno">Turno</label>
+    <select id="turno" name="turno"><option>10:00</option><option>19:00</option></select>
+    <label for="nombre">Nombre</label><input id="nombre" name="nombre" required>
+    <label for="telefono">Teléfono</label><input id="telefono" name="telefono" type="tel" required>
+    <p><button>Enviar inscripción</button></p>
+  </form>
+  <div id="ok"></div>
+  <div id="admin"></div>
+</section>
+
+<section id="prog" hidden>
+  <button class="s noimp" onclick="ir('inicio')">‹ Inicio</button>
+  <div class="nav">
+    <button class="s" onclick="mes(-1)">‹</button><h2 id="mes"></h2><button class="s" onclick="mes(1)">›</button>
+  </div>
+  <div id="dias"></div>
+  <p class="noimp"><button onclick="print()">Imprimir o guardar PDF</button></p>
+</section>
+</main>
+
+<script>
+// 1) Pega aquí la URL que te da Google Apps Script (termina en /exec)
+const URL_SCRIPT='https://script.google.com/macros/s/AKfycbxKG0CiXUpi4Pf8P-xekS8EcF7y40ox37zahZQQ8MVr_cdHOJ4A9b8j-0TmF_4l9qQZ/exec';
+
+const $=s=>document.querySelector(s), T=['10:00','19:00'];
+let clave=sessionStorage.clave||'', hoy=new Date(), M={y:hoy.getFullYear(),m:hoy.getMonth()};
+const api=p=>fetch(URL_SCRIPT+'?'+new URLSearchParams(p)).then(r=>r.json());
+const post=d=>fetch(URL_SCRIPT,{method:'POST',body:JSON.stringify(d)}).then(r=>r.json());
+const f2=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+$('#fecha').min=f2(hoy);
+if(clave)$('#acc').textContent='Salir de modo superintendente';
+
+function ir(v){
+  document.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
+  if(v=='prog')prog(); if(v=='cap')cap();
+}
+function refrescar(){ir([...document.querySelectorAll('section')].find(s=>!s.hidden).id)}
+function mes(n){M.m+=n;if(M.m>11){M.m=0;M.y++}if(M.m<0){M.m=11;M.y--}prog()}
+
+async function acceso(){
+  if(clave){clave='';sessionStorage.clear();$('#acc').textContent='Soy el superintendente';return refrescar()}
+  const c=prompt('Clave del superintendente:'); if(!c)return;
+  try{const r=await api({a:'inscritos',clave:c});
+    if(r.error){alert('Clave incorrecta');return}
+    clave=c;sessionStorage.clave=c;$('#acc').textContent='Salir de modo superintendente';refrescar();
+  }catch(e){alert('No se pudo conectar con la planilla.')}
+}
+
+$('#f').onsubmit=async e=>{
+  e.preventDefault();const b=e.target.querySelector('button');b.disabled=true;
+  try{const r=await post({a:'inscribir',...Object.fromEntries(new FormData(e.target))});
+    $('#ok').textContent=r.error?'Error: '+r.error:'¡Listo! Quedaste inscrito.';
+    if(!r.error)e.target.reset();
+  }catch(x){$('#ok').textContent='No se pudo enviar. Revisa tu internet e intenta de nuevo.'}
+  b.disabled=false;
+};
+
+async function prog(){
+  const box=$('#dias');box.textContent='Cargando…';
+  $('#mes').textContent=new Date(M.y,M.m,1).toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+  let P;try{P=await api({a:'programa'})}catch(e){box.textContent='No se pudo cargar el programa.';return}
+  const n=new Date(M.y,M.m+1,0).getDate();let h='';
+  for(let d=1;d<=n;d++){
+    const dt=new Date(M.y,M.m,d),k=f2(dt);
+    h+=`<div class="dia"><h3>${dt.toLocaleDateString('es-CL',{weekday:'long',day:'numeric'})}</h3>`;
+    for(const t of T){
+      const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
+      h+=clave
+        ?`<div class="tn" data-k="${k}" data-t="${t}"><b>${t}</b><input placeholder="Capitán" value="${esc(r.capitan)}"><input placeholder="Punto de reunión" value="${esc(r.punto)}"><input placeholder="Nota" value="${esc(r.nota)}"><button onclick="guardar(this)">Guardar</button></div>`
+        :`<div class="tn"><b>${t}</b><span>${esc(r.capitan)||'—'}</span><span>${esc(r.punto)}</span><span>${esc(r.nota)}</span></div>`;
+    }
+    h+='</div>';
+  }
+  box.innerHTML=h;
+}
+
+async function guardar(b){
+  const e=b.parentNode,i=e.querySelectorAll('input');b.disabled=true;
+  try{const r=await post({a:'guardar',clave,fecha:e.dataset.k,turno:e.dataset.t,capitan:i[0].value,punto:i[1].value,nota:i[2].value});
+    b.textContent=r.error?'Error':'✓ Guardado';
+  }catch(x){b.textContent='Error'}
+  b.disabled=false;
+}
+
+async function cap(){
+  const a=$('#admin');a.innerHTML='';if(!clave)return;
+  try{
+    const [I,P]=await Promise.all([api({a:'inscritos',clave}),api({a:'programa'})]);
+    if(I.error){clave='';sessionStorage.clear();return}
+    const g={};I.forEach(x=>(g[x.fecha+'|'+x.turno]??=[]).push(x));
+    const ks=Object.keys(g).sort();
+    a.innerHTML='<h2>Inscritos</h2>'+(ks.map(k=>{
+      const [f,t]=k.split('|'),r=P.find(x=>x.fecha==f&&x.turno==t)||{};
+      return `<div class="dia"><h3>${f} a las ${t}. Capitán: ${esc(r.capitan)||'sin elegir'}</h3>`+
+        g[k].map(x=>`<div class="tn"><span>${esc(x.nombre)}</span><span>${esc(x.telefono)}</span><button data-f="${f}" data-t="${t}" data-n="${esc(x.nombre)}" onclick="elegir(this)">Elegir capitán</button></div>`).join('')+'</div>';
+    }).join('')||'<p>Aún no hay inscritos.</p>');
+  }catch(e){a.textContent='No se pudo cargar la lista.'}
+}
+
+async function elegir(b){
+  b.disabled=true;
+  try{
+    const r=(await api({a:'programa'})).find(x=>x.fecha==b.dataset.f&&x.turno==b.dataset.t)||{};
+    await post({a:'guardar',clave,fecha:b.dataset.f,turno:b.dataset.t,capitan:b.dataset.n,punto:r.punto||'',nota:r.nota||''});
+    cap();
+  }catch(e){b.disabled=false;alert('No se pudo guardar.')}
+}
+</script>
 </body>
 </html>
