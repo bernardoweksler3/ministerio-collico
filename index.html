@@ -398,13 +398,13 @@ async function prog(){
   DIA=z=>{let h='';
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));
     if(esFin(k)){
-      const R=P.filter(x=>x.fecha==k&&(x.capitan||x.punto||x.territorios)).sort((a,b)=>a.turno.localeCompare(b.turno));
-      return `<div class="dia fin" data-k="${k}"><h3>${fechaLarga(k)}</h3><div class="tn"><span class="mu">Arreglo por Grupo de Servicio: agrega los horarios y elige los grupos.</span></div>${(R.length?R:[{}]).map(r=>FILA(k,r)).join('')}<div class="tn gd"><button onclick="guardarDia(this)">Guardar día</button><button class="s" onclick="masFila(this)">＋ Agregar horario</button></div></div>`}
+      const R=PRG.filter(x=>x.fecha==k&&(x.capitan||x.punto||x.territorios)).sort((a,b)=>a.turno.localeCompare(b.turno));
+      return `<div class="dia fin" data-k="${k}"><h3>${fechaLarga(k)}</h3><div class="tn"><span class="mu">Arreglo por Grupo de Servicio: agrega los horarios y elige los grupos.</span></div>${(R.length?R:[{}]).map(r=>FILA(k,r)).join('')}<div class="tn gd"><button onclick="guardarDia(this)">Guardar día</button><button class="s" onclick="masFila(this)">＋ Agregar horario</button><button class="pel" onclick="eliminarDia(this)">Eliminar día</button></div></div>`}
     h+=`<div class="dia" data-k="${k}"><h3>${fechaLarga(k)}</h3>`;
     for(const t of turnos(k)){
-      const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
+      const r=PRG.find(x=>x.fecha==k&&x.turno==t)||{};
       h+=`<div class="tn" data-k="${k}" data-t="${t}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><b>${t}</b>${opcPunto(r.punto)}${opcCap(k,t,r.capitan)}<button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button></div>`}
-    h+='<div class="tn gd"><button onclick="guardarDia(this)">Guardar día</button></div></div>';
+    h+='<div class="tn gd"><button onclick="guardarDia(this)">Guardar día</button><button class="pel" onclick="eliminarDia(this)">Eliminar día</button></div></div>';
     return h};
   ZMIN=Math.min(ZMIN,1);ZMAX=Math.max(ZMAX,1);
   for(let z=-1;z<=10;z++){const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));if(P.some(x=>x.fecha==k&&(x.capitan||x.punto||x.territorios))){ZMIN=Math.min(ZMIN,z);ZMAX=Math.max(ZMAX,z)}}
@@ -465,6 +465,19 @@ async function guardarDia(b){
     else if(r.error!='ocupado')toast('No se pudo guardar. Intenta de nuevo.',1);
   }catch(x){toast('No se pudo guardar. Revisa tu internet.',1)}
   b.disabled=false;
+}
+async function eliminarDia(b){
+  const d=b.closest('.dia'),k=d.dataset.k,guard=PRG.filter(x=>x.fecha==k&&(x.capitan||x.punto||x.territorios));
+  if(!confirm('¿Eliminar todo lo del '+fechaLarga(k)+'?'+(guard.length?'\n\nSe borrarán los datos guardados de ese día.':'')))return;
+  if(guard.length){
+    b.disabled=true;
+    try{const r=await llamar('guardarLote',{hoja:'Programa',filas:guard.map(x=>({fecha:k,turno:x.turno,punto:'',capitan:'',territorios:'',nota:''}))});
+      if(!r.ok){if(r.error!='ocupado')toast('No se pudo eliminar. Intenta de nuevo.',1);b.disabled=false;return}
+    }catch(x){toast('No se pudo eliminar. Revisa tu internet.',1);b.disabled=false;return}
+    PRG=PRG.filter(x=>x.fecha!=k);
+  }
+  const z=Math.round((new Date(k+'T12:00')-new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate(),12))/864e5);
+  d.outerHTML=DIA(z);marcar();tarde();toast('✓ Día eliminado');
 }
 async function guardarFin(b,d,k){
   const filas=[],cuenta={};
@@ -566,17 +579,16 @@ function imagen(){
     im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
   });
 }
-const MSG_WA='Queridos hermanos,\nCompartimos con ustedes el programa de predicación para la semana. Un abrazo.';
 async function compartir(btn){
   btn.disabled=true;
   try{
     const blob=await imagen(),f=new File([blob],'programa-predicacion.png',{type:'image/png'});
     if(navigator.canShare&&navigator.canShare({files:[f]})){
-      try{await navigator.share({files:[f],title:'Programa de predicación',text:MSG_WA});btn.disabled=false;return}catch(e){if(e.name=='AbortError'){btn.disabled=false;return}}
+      try{await navigator.share({files:[f],title:'Programa de predicación'});btn.disabled=false;return}catch(e){if(e.name=='AbortError'){btn.disabled=false;return}}
     }
     const a=$d.createElement('a');a.href=URL.createObjectURL(blob);a.download='programa-predicacion.png';$d.body.appendChild(a);a.click();a.remove();
     toast('Imagen guardada. Adjúntala en WhatsApp.');
-    window.open('https://wa.me/?text='+encodeURIComponent(MSG_WA),'_blank');
+    window.open('https://wa.me/','_blank');
   }catch(e){toast('No se pudo crear la imagen.',1)}
   btn.disabled=false;
 }
