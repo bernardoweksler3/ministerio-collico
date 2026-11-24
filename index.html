@@ -56,7 +56,21 @@ input:disabled{background:#f1f3f4;color:#6b7a82}
 #resumen,#ok,#msg{font-weight:bold;color:var(--az)}
 footer{margin-top:40px;text-align:center;font-size:13px}
 footer a{color:#55666f;cursor:pointer}
-@media print{header,.tabs,footer,.noimp{display:none}main{max-width:none;padding:0}.dia{break-inside:avoid}}
+textarea{font:inherit;width:100%;padding:10px;border:2px solid var(--bd);border-radius:8px}
+.tn select{flex:1 1 150px;width:auto;padding:6px;font:inherit;border:2px solid var(--bd);border-radius:8px;background:#fff}
+dialog{width:min(92vw,560px);max-height:85vh;overflow:auto;border:2px solid var(--az);border-radius:10px}
+.tr{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--az2)}
+.tr input[type=checkbox]{width:22px;height:22px;vertical-align:middle}
+.tr .l{width:90px;padding:4px}
+#pdf{display:none}
+#pdf h1,#pdf h2{text-align:center;margin:0;letter-spacing:1px}
+#pdf h1{font-size:24px}#pdf h2{font-size:18px;margin-bottom:14px;color:#444}
+#pdf table{width:100%;border-collapse:collapse;font-size:14px}
+#pdf th{background:#17445c;color:#fff;text-align:left;padding:7px 8px;border:1px solid #17445c}
+#pdf td{padding:6px 8px;border:1px solid #cfd6dc;vertical-align:top}
+#pdf tr.am td{background:#fff7cc}
+#pdf tr.nd td{border-top:2px solid #17445c}
+@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body.imp header,body.imp main{display:none}body.imp #pdf{display:block}header,.tabs,footer,.noimp{display:none}main{max-width:none;padding:0}.dia{break-inside:avoid}}
 </style>
 </head>
 <body>
@@ -67,7 +81,7 @@ footer a{color:#55666f;cursor:pointer}
   <button data-v="pto" onclick="ir('pto')">Puntos de encuentro</button>
   <button data-v="ter" onclick="ir('ter')">Territorios</button>
   <button data-v="prog" onclick="ir('prog')">Programa</button>
-  <button data-v="est" id="tabest" onclick="ir('est')" hidden>Estadísticas</button>
+  <button data-v="est" onclick="ir('est')">Estadísticas</button>
 </nav>
 
 <section id="cap">
@@ -88,13 +102,20 @@ footer a{color:#55666f;cursor:pointer}
 </section>
 
 <section id="pto" hidden><h1>Puntos de encuentro</h1><div id="lpto"></div></section>
-<section id="ter" hidden><h1>Territorios</h1><div id="lter"></div></section>
+<section id="ter" hidden>
+  <h1>Territorios</h1>
+  <details class="noimp"><summary>Cargar lista completa</summary>
+    <p>Pega una línea por territorio: primero el número y luego el nombre. Ejemplo: 1 Villa Los Álamos</p>
+    <textarea id="tl" rows="8"></textarea>
+    <p><button onclick="tcargar()">Cargar territorios</button></p>
+  </details>
+  <div id="lter"></div>
+</section>
 
 <section id="prog" hidden>
   <h1>Programa</h1>
-  <datalist id="pl"></datalist>
-  <div id="dias"></div>
-  <p class="noimp"><button onclick="print()">Imprimir o guardar PDF</button></p>
+    <div id="dias"></div>
+  <p class="noimp"><button onclick="pdf()">Exportar PDF</button></p>
 </section>
 
 <section id="est" hidden>
@@ -128,8 +149,15 @@ footer a{color:#55666f;cursor:pointer}
     <p><button onclick="nadd()">Agregar nombre</button></p>
   </div>
 </section>
+<dialog id="dt">
+  <h2>Territorios</h2>
+  <p>Marca los territorios y, si corresponde, escribe las letras de las manzanas (A, B, C…).</p>
+  <div id="dtl"></div>
+  <p><button onclick="dtok()">Aceptar</button> <button class="s" onclick="$('#dt').close()">Cancelar</button></p>
+</dialog>
 <footer><a id="pie" onclick="ir('acc')">Acceso</a></footer>
 </main>
+<div id="pdf"></div>
 
 <script>
 // Pega aquí la URL que te da Google Apps Script (termina en /exec)
@@ -137,7 +165,7 @@ const URL_SCRIPT='https://script.google.com/macros/s/AKfycbxKG0CiXUpi4Pf8P-xekS8
 
 const $=s=>$d.querySelector(s),$d=document, SEM=['10:00','18:00','19:00'], FIN=['10:00','10:30','11:00'], MD=['🚪 Casa en casa','💻 Por Zoom'];
 const CAMPOS={Puntos:[['nombre','Nombre'],['direccion','Dirección']],
-  Territorios:[['numero','Número'],['zona','Zona o descripción'],['asignado','Asignado a'],['nota','Nota']]};
+  Territorios:[['numero','Número'],['zona','Nombre'],['asignado','Asignado a'],['nota','Nota']]};
 let U=sessionStorage.u||'',K=sessionStorage.k||'',R=sessionStorage.r||'',NOTA='',DEST='cap',V='cap';
 let hoy=new Date(), M={y:hoy.getFullYear(),m:hoy.getMonth()};
 const llamar=(a,d={})=>fetch(URL_SCRIPT,{method:'POST',body:JSON.stringify({a,u:U,c:K,...d})}).then(r=>r.json())
@@ -151,9 +179,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 
 function ir(v){
   if(!U&&v!='cap'&&v!='acc'){DEST=v;NOTA='Esta sección requiere acceso. Ingresa con tu usuario y contraseña.';v='acc'}
-  if(v=='est'&&R!='admin')v='cap';
   V=v;
-  $('#tabest').hidden=R!='admin';
   $d.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
   $d.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
   $('#pie').textContent=U?'Acceso ('+U+')':'Acceso';
@@ -195,6 +221,7 @@ async function lista(h,sel){
   const box=$(sel);box.textContent='Cargando…';
   let L;try{L=await llamar('listar',{hoja:h})}catch(e){box.textContent='No se pudo cargar.';return}
   if(!Array.isArray(L))return;
+  if(h=='Territorios')L.sort((a,b)=>a.numero-b.numero);
   const fila=(f,nuevo)=>`<div class="dia" data-id="${esc(f.id)}"><div class="tn">`+CAMPOS[h].map(([c,t])=>`<input placeholder="${t}" aria-label="${t}" data-c="${c}" value="${esc(f[c])}">`).join('')+
     `<button onclick="gfila(this,'${h}')">${nuevo?'Agregar':'Guardar'}</button>${nuevo?'':`<button class="s" onclick="bfila(this,'${h}')">Borrar</button>`}</div></div>`;
   box.innerHTML=L.map(f=>fila(f)).join('')+'<h3>Agregar nuevo</h3>'+fila({},true);
@@ -207,27 +234,68 @@ async function gfila(b,h){
 async function bfila(b,h){if(confirm('¿Borrar este registro?')){await llamar('borrar',{hoja:h,id:b.closest('[data-id]').dataset.id});ir(V)}}
 
 /* Programa */
+let TER=[],PRG=[],CUR=null;
+const parseT=s=>String(s||'').split(';').filter(Boolean).map(p=>{const [n,l='']=p.split(':');return [n,l]});
+const terrTxt=s=>{const L=parseT(s);return L.length?'Terr.: '+L.map(([n,l])=>n+(l?' ('+l.split('').join(',')+')':'')).join(', '):'Territorios'};
+const opc=(L,v,ph)=>`<select aria-label="${ph}"><option value="">${ph}</option>`+(v&&!L.includes(v)?[...L,v]:L).map(x=>`<option${x==v?' selected':''}>${esc(x)}</option>`).join('')+'</select>';
 async function prog(){
   const box=$('#dias');box.textContent='Cargando…';
-  let P,Q;try{[P,Q]=await Promise.all([llamar('listar',{hoja:'Programa'}),llamar('listar',{hoja:'Puntos'})])}catch(e){box.textContent='No se pudo cargar el programa.';return}
-  if(!Array.isArray(P))return;
-  $('#pl').innerHTML=(Q||[]).map(x=>`<option value="${esc(x.nombre)}">`).join('');
-  let h='';
+  let P,Q,N,R;try{[P,Q,N,R]=await Promise.all(['Programa','Puntos','Nombres','Territorios'].map(hoja=>llamar('listar',{hoja})))}catch(e){box.textContent='No se pudo cargar el programa.';return}
+  if(![P,Q,N,R].every(Array.isArray))return;
+  PRG=P;TER=R.sort((a,b)=>a.numero-b.numero);
+  const pu=Q.map(x=>x.nombre),na=N.map(x=>x.nombre).sort();let h='';
   for(let z=-1;z<=10;z++){
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));
+    const cp=t=>((P.find(x=>x.fecha==k&&x.turno==t)||{}).capitan||'').trim();
     h+=`<div class="dia"><h3>${fechaLarga(k)}</h3>`;
-    for(const t of turnos(k)){const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
-      h+=`<div class="tn" data-k="${k}" data-t="${t}"><b>${t}</b><input placeholder="Capitán" value="${esc(r.capitan)}"><input list="pl" placeholder="Punto de reunión" value="${esc(r.punto)}"><input placeholder="Nota" value="${esc(r.nota)}"><button onclick="guardar(this)">Guardar</button></div>`}
+    for(const t of turnos(k)){
+      const o=t=='18:00'?'19:00':t=='19:00'?'18:00':'';
+      if(o&&turnos(k)===SEM&&!cp(t)&&cp(o))continue;
+      const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
+      h+=`<div class="tn" data-k="${k}" data-t="${t}" data-ter="${esc(r.territorios)}"><b>${t}</b>${opc(pu,r.punto,'Punto de encuentro')}${opc(na,r.capitan,'Capitán')}<button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button><input placeholder="Nota" aria-label="Nota" value="${esc(r.nota)}"><button onclick="guardar(this)">Guardar</button></div>`}
     h+='</div>';
   }
   box.innerHTML=h;
 }
 async function guardar(b){
-  const e=b.parentNode,i=e.querySelectorAll('input');b.disabled=true;
-  try{const r=await llamar('guardar',{hoja:'Programa',fila:{fecha:e.dataset.k,turno:e.dataset.t,capitan:i[0].value,punto:i[1].value,nota:i[2].value}});
+  const e=b.parentNode,s=e.querySelectorAll('select'),t=e.dataset.t,k=e.dataset.k;b.disabled=true;
+  try{const r=await llamar('guardar',{hoja:'Programa',fila:{fecha:k,turno:t,punto:s[0].value,capitan:s[1].value,territorios:e.dataset.ter||'',nota:e.querySelector('input').value}});
+    if(r.ok&&(t=='18:00'||t=='19:00')&&turnos(k)===SEM)return prog();
     b.textContent=r.ok?'✓ Guardado':'Error';
   }catch(x){b.textContent='Error'}
   b.disabled=false;
+}
+function abrirT(b){
+  CUR=b.closest('.tn');const m=Object.fromEntries(parseT(CUR.dataset.ter));
+  $('#dtl').innerHTML=TER.length?TER.map(x=>{const n=String(x.numero);
+    return `<div class="tr"><label><input type="checkbox" data-n="${esc(n)}"${n in m?' checked':''}> ${esc(n)} ${esc(x.zona)}</label><input class="l" placeholder="Letras" aria-label="Letras de las manzanas del territorio ${esc(n)}" value="${esc(m[n]||'')}" oninput="this.parentNode.querySelector('[type=checkbox]').checked=true"></div>`}).join(''):'<p>Aún no hay territorios. Cárgalos en la pestaña Territorios.</p>';
+  $('#dt').showModal();
+}
+function dtok(){
+  const L=[...$d.querySelectorAll('#dtl .tr')].filter(r=>r.querySelector('[type=checkbox]').checked).map(r=>{const n=r.querySelector('[type=checkbox]').dataset.n,l=r.querySelector('.l').value.toUpperCase().replace(/[^A-ZÑ]/g,'');return n+(l?':'+l:'')});
+  CUR.dataset.ter=L.join(';');CUR.querySelector('.s').textContent=terrTxt(CUR.dataset.ter);$('#dt').close();
+}
+function pdf(){
+  const nt=n=>{const t=TER.find(x=>String(x.numero)==n);return t?n+' '+t.zona:n};
+  const F=[];
+  for(let d=0;d<=10;d++){
+    const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+d));
+    turnos(k).forEach(t=>{const r=PRG.find(x=>x.fecha==k&&x.turno==t);if(r&&(r.capitan||r.punto||r.territorios||r.nota))F.push({k,t,r})});
+  }
+  if(!F.length)return alert('Todavía no hay datos en el programa para exportar.');
+  const C=[{t:'Capitán',f:'capitan'},{t:'Punto de encuentro',f:'punto'},{t:'Territorios',f:'territorios'},{t:'Nota',f:'nota'}].filter(c=>F.some(x=>x.r[c.f]));
+  const cel=(c,r)=>c.f=='territorios'?parseT(r.territorios).map(([n,l])=>esc(nt(n))+(l?' ('+l.split('').join(', ')+')':'')).join('<br>'):esc(r[c.f]);
+  let ant='',h='<h1>PROGRAMA DE PREDICACIÓN</h1><h2>CONGREGACIÓN COLLICO</h2><table><thead><tr><th>Fecha</th><th>Horario</th>'+C.map(c=>`<th>${c.t}</th>`).join('')+'</tr></thead><tbody>';
+  F.forEach(({k,t,r},i)=>{h+=`<tr class="${i%2?'':'am'}${k!=ant?' nd':''}"><td>${k!=ant?fechaLarga(k):''}</td><td>${t}</td>${C.map(c=>`<td>${cel(c,r)}</td>`).join('')}</tr>`;ant=k});
+  $('#pdf').innerHTML=h+'</tbody></table>';
+  $d.body.classList.add('imp');print();
+}
+onafterprint=()=>$d.body.classList.remove('imp');
+async function tcargar(){
+  const filas=$('#tl').value.split('\n').map(l=>l.trim().match(/^(\d+)\s*[-–.:,;\t ]\s*(.+)$/)).filter(Boolean).map(m=>({numero:m[1],zona:m[2].trim()}));
+  if(!filas.length)return alert('No encontré líneas con número y nombre.');
+  const r=await llamar('territoriosCargar',{filas});
+  if(r.ok){$('#tl').value='';alert('Listo: '+filas.length+' territorios cargados.');ir('ter')}else alert('No se pudo cargar la lista.');
 }
 
 /* Capitanes de Grupo (público) */
@@ -313,7 +381,7 @@ async function elegir(b,cancelar){
   b.disabled=true;
   try{
     const P=await llamar('listar',{hoja:'Programa'}),r=P.find(x=>x.fecha==b.dataset.f&&x.turno==b.dataset.t)||{};
-    await llamar('guardar',{hoja:'Programa',fila:{fecha:b.dataset.f,turno:b.dataset.t,capitan:cancelar?'':b.dataset.n,punto:r.punto||'',nota:r.nota||''}});
+    await llamar('guardar',{hoja:'Programa',fila:{fecha:b.dataset.f,turno:b.dataset.t,capitan:cancelar?'':b.dataset.n,punto:r.punto||'',nota:r.nota||'',territorios:r.territorios||''}});
     cap();
   }catch(e){b.disabled=false;alert('No se pudo guardar.')}
 }
