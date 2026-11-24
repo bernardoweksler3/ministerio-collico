@@ -3,29 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ministerio Congregación Collico</title>
+<title>Servicio de predicación</title>
 <style>
 :root{--az:#17445c;--az2:#e6eef3;--tx:#1c2429;--bd:#c5d2da}
 *{box-sizing:border-box}
 body{margin:0;font:19px/1.5 Verdana,Geneva,sans-serif;color:var(--tx);background:#fff}
-header{background:var(--az);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-header a{color:#fff;font-weight:bold;text-decoration:none;cursor:pointer}
+header{background:var(--az);color:#fff;padding:14px 18px;font-weight:bold}
 main{max-width:760px;margin:0 auto;padding:18px}
 button{font:inherit;padding:10px 16px;border:2px solid var(--az);background:var(--az);color:#fff;border-radius:8px;cursor:pointer}
 button.s{background:#fff;color:var(--az)}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #e0a100;outline-offset:2px}
-.grande{display:block;width:100%;padding:34px 16px;margin:16px 0;font-size:26px;text-align:left}
-.grande small{display:block;font-size:16px;font-weight:normal;opacity:.85}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #e0a100;outline-offset:2px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button{background:#fff;color:var(--az);border-color:var(--bd);padding:8px 12px;font-size:17px}
+.tabs button.on{background:var(--az);color:#fff;border-color:var(--az)}
 label{display:block;margin:12px 0 4px;font-weight:bold}
 input,select{font:inherit;width:100%;padding:10px;border:2px solid var(--bd);border-radius:8px}
+h1{font-size:26px;margin:12px 0 4px}
 .dia{border:1px solid var(--bd);border-radius:8px;margin:12px 0;overflow:hidden}
 .dia h3{margin:0;padding:8px 12px;background:var(--az2);text-transform:capitalize;font-size:18px}
 .tn{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 12px;border-top:1px solid var(--bd)}
+.tn:first-child{border-top:0}
 .tn b{min-width:58px}.tn span{flex:1 1 120px}.tn input{flex:1 1 140px;width:auto;padding:6px}
 .nav{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .nav h2{text-transform:capitalize;margin:0}
-#ok{font-weight:bold;color:var(--az);margin-top:12px}
-h1{font-size:26px;margin:16px 0 4px}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0}
 .cal b{text-align:center;color:#55666f}
 .cal .d{padding:12px 0;background:#fff;color:var(--az);border:2px solid var(--bd)}
@@ -34,23 +34,23 @@ h1{font-size:26px;margin:16px 0 4px}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .ch{background:#fff;color:var(--az);border:2px solid var(--bd)}
 .ch.on{background:var(--az);color:#fff;border-color:var(--az)}
-#resumen{font-weight:bold}
-@media print{header,.nav button,.noimp{display:none}main{max-width:none;padding:0}.dia{break-inside:avoid}}
+#resumen,#ok,#msg{font-weight:bold;color:var(--az)}
+footer{margin-top:40px;text-align:center;font-size:13px}
+footer a{color:#55666f;cursor:pointer}
+@media print{header,.tabs,footer,.noimp{display:none}main{max-width:none;padding:0}.dia{break-inside:avoid}}
 </style>
 </head>
 <body>
-<header>
-  <a onclick="ir('inicio')">Ministerio Congregación Collico</a>
-  <a id="acc" onclick="acceso()">Soy el superintendente</a>
-</header>
+<header>Servicio de predicación</header>
 <main>
-<section id="inicio">
-  <button class="grande" onclick="ir('cap')">Capitanes<small>Inscribirse para dirigir un grupo</small></button>
-  <button class="grande" onclick="ir('prog')">Programas<small>Ver el programa del mes</small></button>
-</section>
+<nav class="tabs">
+  <button data-v="cap" onclick="ir('cap')">Capitanes de Grupo</button>
+  <button data-v="pto" onclick="ir('pto')">Puntos de encuentro</button>
+  <button data-v="ter" onclick="ir('ter')">Territorios</button>
+  <button data-v="prog" onclick="ir('prog')">Programa</button>
+</nav>
 
-<section id="cap" hidden>
-  <button class="s" onclick="ir('inicio')">‹ Inicio</button>
+<section id="cap">
   <h1>Capitanes de predicación</h1>
   <h2>Disponibilidad para ser capitán</h2>
   <p>Marca los días en que puedes acompañar la predicación.</p>
@@ -71,47 +71,135 @@ h1{font-size:26px;margin:16px 0 4px}
   <div id="admin"></div>
 </section>
 
+<section id="pto" hidden><h1>Puntos de encuentro</h1><div id="lpto"></div></section>
+<section id="ter" hidden><h1>Territorios</h1><div id="lter"></div></section>
+
 <section id="prog" hidden>
-  <button class="s noimp" onclick="ir('inicio')">‹ Inicio</button>
+  <h1>Programa</h1>
   <div class="nav">
     <button class="s" onclick="mes(-1)">‹</button><h2 id="mes"></h2><button class="s" onclick="mes(1)">›</button>
   </div>
+  <datalist id="pl"></datalist>
   <div id="dias"></div>
   <p class="noimp"><button onclick="print()">Imprimir o guardar PDF</button></p>
 </section>
+
+<section id="acc" hidden>
+  <h1>Acceso</h1>
+  <p id="msg"></p>
+  <div id="login">
+    <label for="lu">Usuario</label><input id="lu" autocomplete="username">
+    <label for="lc">Contraseña</label><input id="lc" type="password" autocomplete="current-password">
+    <p><button onclick="entrar()">Entrar</button></p>
+  </div>
+  <div id="sesion" hidden>
+    <p id="quien"></p>
+    <p><button class="s" onclick="salir()">Cerrar sesión</button></p>
+  </div>
+  <div id="adm" hidden>
+    <h2>Usuarios</h2>
+    <div class="dia" id="us"></div>
+    <label for="nu">Nuevo usuario</label><input id="nu" autocapitalize="off">
+    <label for="nc">Contraseña</label><input id="nc">
+    <p><button onclick="uadd()">Agregar usuario</button></p>
+    <p>Si escribes un usuario que ya existe, se cambia su contraseña.</p>
+  </div>
+</section>
+<footer><a id="pie" onclick="ir('acc')">Acceso</a></footer>
 </main>
 
 <script>
-// 1) Pega aquí la URL que te da Google Apps Script (termina en /exec)
+// Pega aquí la URL que te da Google Apps Script (termina en /exec)
 const URL_SCRIPT='https://script.google.com/macros/s/AKfycbxKG0CiXUpi4Pf8P-xekS8EcF7y40ox37zahZQQ8MVr_cdHOJ4A9b8j-0TmF_4l9qQZ/exec';
 
-const $=s=>document.querySelector(s), T=['10:00','16:00','19:00'], MD=['🚪 Casa en casa','💻 Por Zoom'];
-let clave=sessionStorage.clave||'', hoy=new Date(), M={y:hoy.getFullYear(),m:hoy.getMonth()};
-const api=p=>fetch(URL_SCRIPT+'?'+new URLSearchParams(p)).then(r=>r.json());
-const post=d=>fetch(URL_SCRIPT,{method:'POST',body:JSON.stringify(d)}).then(r=>r.json());
+const $=s=>$d.querySelector(s),$d=document, T=['10:00','16:00','19:00'], MD=['🚪 Casa en casa','💻 Por Zoom'];
+const CAMPOS={Puntos:[['nombre','Nombre'],['direccion','Dirección'],['nota','Nota']],
+  Territorios:[['numero','Número'],['zona','Zona o descripción'],['asignado','Asignado a'],['nota','Nota']]};
+let U=sessionStorage.u||'',K=sessionStorage.k||'',R=sessionStorage.r||'',NOTA='',DEST='cap',V='cap';
+let hoy=new Date(), M={y:hoy.getFullYear(),m:hoy.getMonth()};
+const llamar=(a,d={})=>fetch(URL_SCRIPT,{method:'POST',body:JSON.stringify({a,u:U,c:K,...d})}).then(r=>r.json())
+  .then(r=>{if(r.error=='acceso'&&a!='login')salir(true);return r});
 const f2=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-if(clave)$('#acc').textContent='Salir de modo superintendente';
 
 function ir(v){
-  document.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
-  if(v=='prog')prog(); if(v=='cap'){dib();cap()}
+  if(!U&&v!='cap'&&v!='acc'){DEST=v;NOTA='Esta sección requiere acceso. Ingresa con tu usuario y contraseña.';v='acc'}
+  V=v;
+  $d.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
+  $d.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
+  $('#pie').textContent=U?'Acceso ('+U+')':'Acceso';
+  ({cap:()=>{dib();cap()},pto:()=>lista('Puntos','#lpto'),ter:()=>lista('Territorios','#lter'),prog,acc:vacc})[v]();
 }
-function refrescar(){ir([...document.querySelectorAll('section')].find(s=>!s.hidden).id)}
+function salir(forzado){
+  U=K=R='';sessionStorage.clear();DEST='cap';
+  if(forzado)NOTA='Tu sesión no es válida. Ingresa de nuevo.';
+  ir(forzado?'acc':'cap');
+}
+async function entrar(){
+  const u=$('#lu').value.trim(),c=$('#lc').value;
+  const r=await llamar('login',{u,c}).catch(()=>({error:'red'}));
+  if(!r.ok){$('#msg').textContent=r.error=='red'?'No se pudo conectar con la planilla.':'Usuario o contraseña incorrectos.';return}
+  U=u;K=c;R=r.rol;Object.assign(sessionStorage,{u,k:c,r:r.rol});$('#lc').value='';ir(DEST);
+}
+async function vacc(){
+  $('#msg').textContent=NOTA;NOTA='';
+  $('#login').hidden=!!U;$('#sesion').hidden=!U;$('#quien').textContent=U?'Sesión iniciada como '+U+'.':'';
+  $('#adm').hidden=R!='admin';
+  if(R=='admin'){const L=await llamar('listar',{hoja:'Usuarios'});
+    $('#us').innerHTML=Array.isArray(L)&&L.length?L.map(x=>`<div class="tn"><span>${esc(x.usuario)}</span><button class="s" onclick="ubor('${esc(x.usuario)}')">Borrar</button></div>`).join(''):'<div class="tn">Aún no hay usuarios.</div>';}
+}
+async function uadd(){
+  const nuevo=$('#nu').value.trim(),clave=$('#nc').value;
+  if(!nuevo||!clave)return alert('Escribe usuario y contraseña.');
+  await llamar('usuarioNuevo',{nuevo,clave});$('#nu').value=$('#nc').value='';vacc();
+}
+async function ubor(n){if(confirm('¿Borrar a '+n+'?')){await llamar('usuarioBorrar',{nuevo:n});vacc()}}
+
+/* Puntos de encuentro y Territorios */
+async function lista(h,sel){
+  const box=$(sel);box.textContent='Cargando…';
+  let L;try{L=await llamar('listar',{hoja:h})}catch(e){box.textContent='No se pudo cargar.';return}
+  if(!Array.isArray(L))return;
+  const fila=(f,nuevo)=>`<div class="dia" data-id="${esc(f.id)}"><div class="tn">`+CAMPOS[h].map(([c,t])=>`<input placeholder="${t}" aria-label="${t}" data-c="${c}" value="${esc(f[c])}">`).join('')+
+    `<button onclick="gfila(this,'${h}')">${nuevo?'Agregar':'Guardar'}</button>${nuevo?'':`<button class="s" onclick="bfila(this,'${h}')">Borrar</button>`}</div></div>`;
+  box.innerHTML=L.map(f=>fila(f)).join('')+'<h3>Agregar nuevo</h3>'+fila({},true);
+}
+async function gfila(b,h){
+  const r=b.closest('[data-id]'),fila={id:r.dataset.id};
+  r.querySelectorAll('input').forEach(i=>fila[i.dataset.c]=i.value);
+  b.disabled=true;await llamar('guardar',{hoja:h,fila});ir(V);
+}
+async function bfila(b,h){if(confirm('¿Borrar este registro?')){await llamar('borrar',{hoja:h,id:b.closest('[data-id]').dataset.id});ir(V)}}
+
+/* Programa */
 function mes(n){M.m+=n;if(M.m>11){M.m=0;M.y++}if(M.m<0){M.m=11;M.y--}prog()}
-
-async function acceso(){
-  if(clave){clave='';sessionStorage.clear();$('#acc').textContent='Soy el superintendente';return refrescar()}
-  const c=prompt('Clave del superintendente:'); if(!c)return;
-  try{const r=await api({a:'inscritos',clave:c});
-    if(r.error){alert('Clave incorrecta');return}
-    clave=c;sessionStorage.clave=c;$('#acc').textContent='Salir de modo superintendente';refrescar();
-  }catch(e){alert('No se pudo conectar con la planilla.')}
+async function prog(){
+  const box=$('#dias');box.textContent='Cargando…';
+  $('#mes').textContent=new Date(M.y,M.m,1).toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+  let P,Q;try{[P,Q]=await Promise.all([llamar('listar',{hoja:'Programa'}),llamar('listar',{hoja:'Puntos'})])}catch(e){box.textContent='No se pudo cargar el programa.';return}
+  if(!Array.isArray(P))return;
+  $('#pl').innerHTML=(Q||[]).map(x=>`<option value="${esc(x.nombre)}">`).join('');
+  const n=new Date(M.y,M.m+1,0).getDate();let h='';
+  for(let d=1;d<=n;d++){
+    const dt=new Date(M.y,M.m,d),k=f2(dt);
+    h+=`<div class="dia"><h3>${dt.toLocaleDateString('es-CL',{weekday:'long',day:'numeric'})}</h3>`;
+    for(const t of T){const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
+      h+=`<div class="tn" data-k="${k}" data-t="${t}"><b>${t}</b><input placeholder="Capitán" value="${esc(r.capitan)}"><input list="pl" placeholder="Punto de reunión" value="${esc(r.punto)}"><input placeholder="Nota" value="${esc(r.nota)}"><button onclick="guardar(this)">Guardar</button></div>`}
+    h+='</div>';
+  }
+  box.innerHTML=h;
+}
+async function guardar(b){
+  const e=b.parentNode,i=e.querySelectorAll('input');b.disabled=true;
+  try{const r=await llamar('guardar',{hoja:'Programa',fila:{fecha:e.dataset.k,turno:e.dataset.t,capitan:i[0].value,punto:i[1].value,nota:i[2].value}});
+    b.textContent=r.ok?'✓ Guardado':'Error';
+  }catch(x){b.textContent='Error'}
+  b.disabled=false;
 }
 
-
-let C={y:hoy.getFullYear(),m:hoy.getMonth()}, G=new Set(['10:00','19:00']), S={}, MS=new Set();
-C.m++; if(C.m>11){C.m=0;C.y++}
+/* Capitanes de Grupo (público) */
+let C={y:hoy.getFullYear(),m:hoy.getMonth()+1}, G=new Set(['10:00','19:00']), S={}, MS=new Set();
+if(C.m>11){C.m=0;C.y++}
 const tg=(s,v)=>s.has(v)?s.delete(v):s.add(v);
 function cmes(n){C.m+=n;if(C.m>11){C.m=0;C.y++}if(C.m<0){C.m=11;C.y--}dib()}
 function dia(k){S[k]?delete S[k]:S[k]=new Set(G);dib()}
@@ -138,45 +226,17 @@ async function enviar(){
   if(!MS.size)return o.textContent='Elige la modalidad de predicación.';
   const filas=ks.flatMap(k=>[...S[k]].map(t=>({fecha:k,turno:t}))),b=$('#env');
   b.disabled=true;
-  try{const r=await post({a:'inscribir',nombre,modalidad:[...MS].join(' y '),filas});
+  try{const r=await llamar('inscribir',{nombre,modalidad:[...MS].join(' y '),filas});
     if(r.error)o.textContent='Error: '+r.error;
     else{o.textContent='¡Listo! Tu disponibilidad fue enviada.';S={};MS.clear();$('#nombre').value='';dib()}
   }catch(x){o.textContent='No se pudo enviar. Revisa tu internet e intenta de nuevo.'}
   b.disabled=false;
 }
-
-async function prog(){
-  const box=$('#dias');box.textContent='Cargando…';
-  $('#mes').textContent=new Date(M.y,M.m,1).toLocaleDateString('es-CL',{month:'long',year:'numeric'});
-  let P;try{P=await api({a:'programa'})}catch(e){box.textContent='No se pudo cargar el programa.';return}
-  const n=new Date(M.y,M.m+1,0).getDate();let h='';
-  for(let d=1;d<=n;d++){
-    const dt=new Date(M.y,M.m,d),k=f2(dt);
-    h+=`<div class="dia"><h3>${dt.toLocaleDateString('es-CL',{weekday:'long',day:'numeric'})}</h3>`;
-    for(const t of T){
-      const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
-      h+=clave
-        ?`<div class="tn" data-k="${k}" data-t="${t}"><b>${t}</b><input placeholder="Capitán" value="${esc(r.capitan)}"><input placeholder="Punto de reunión" value="${esc(r.punto)}"><input placeholder="Nota" value="${esc(r.nota)}"><button onclick="guardar(this)">Guardar</button></div>`
-        :`<div class="tn"><b>${t}</b><span>${esc(r.capitan)||'—'}</span><span>${esc(r.punto)}</span><span>${esc(r.nota)}</span></div>`;
-    }
-    h+='</div>';
-  }
-  box.innerHTML=h;
-}
-
-async function guardar(b){
-  const e=b.parentNode,i=e.querySelectorAll('input');b.disabled=true;
-  try{const r=await post({a:'guardar',clave,fecha:e.dataset.k,turno:e.dataset.t,capitan:i[0].value,punto:i[1].value,nota:i[2].value});
-    b.textContent=r.error?'Error':'✓ Guardado';
-  }catch(x){b.textContent='Error'}
-  b.disabled=false;
-}
-
 async function cap(){
-  const a=$('#admin');a.innerHTML='';if(!clave)return;
+  const a=$('#admin');a.innerHTML='';if(!U)return;
   try{
-    const [I,P]=await Promise.all([api({a:'inscritos',clave}),api({a:'programa'})]);
-    if(I.error){clave='';sessionStorage.clear();return}
+    const [I,P]=await Promise.all([llamar('listar',{hoja:'Inscripciones'}),llamar('listar',{hoja:'Programa'})]);
+    if(!Array.isArray(I))return;
     const g={};I.forEach(x=>(g[x.fecha+'|'+x.turno]??=[]).push(x));
     const ks=Object.keys(g).sort();
     a.innerHTML='<h2>Inscritos</h2>'+(ks.map(k=>{
@@ -186,15 +246,15 @@ async function cap(){
     }).join('')||'<p>Aún no hay inscritos.</p>');
   }catch(e){a.textContent='No se pudo cargar la lista.'}
 }
-
 async function elegir(b){
   b.disabled=true;
   try{
-    const r=(await api({a:'programa'})).find(x=>x.fecha==b.dataset.f&&x.turno==b.dataset.t)||{};
-    await post({a:'guardar',clave,fecha:b.dataset.f,turno:b.dataset.t,capitan:b.dataset.n,punto:r.punto||'',nota:r.nota||''});
+    const r=(await llamar('listar',{hoja:'Programa'})).find(x=>x.fecha==b.dataset.f&&x.turno==b.dataset.t)||{};
+    await llamar('guardar',{hoja:'Programa',fila:{fecha:b.dataset.f,turno:b.dataset.t,capitan:b.dataset.n,punto:r.punto||'',nota:r.nota||''}});
     cap();
   }catch(e){b.disabled=false;alert('No se pudo guardar.')}
 }
+ir('cap');
 </script>
 </body>
 </html>
