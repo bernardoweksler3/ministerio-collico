@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#14465e">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Collico">
@@ -120,6 +121,7 @@ footer a{color:var(--mu);cursor:pointer}
 </style>
 <script>try{document.documentElement.style.setProperty('--z',[.9,1,1.15,1.3,1.5][localStorage.fz==null?1:+localStorage.fz])}catch(e){}
 try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.t='light'}</script>
+<script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))</script>
 </head>
 <body>
 <div id="bar"></div><div id="carga" role="status" aria-live="polite"></div>
