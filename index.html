@@ -25,13 +25,23 @@ input,select{font:inherit;width:100%;padding:10px;border:2px solid var(--bd);bor
 .nav{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .nav h2{text-transform:capitalize;margin:0}
 #ok{font-weight:bold;color:var(--az);margin-top:12px}
+h1{font-size:26px;margin:16px 0 4px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0}
+.cal b{text-align:center;color:#55666f}
+.cal .d{padding:12px 0;background:#fff;color:var(--az);border:2px solid var(--bd)}
+.cal .d.on{background:var(--az);color:#fff;border-color:var(--az)}
+.cal .d:disabled{opacity:.35;cursor:default}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.ch{background:#fff;color:var(--az);border:2px solid var(--bd)}
+.ch.on{background:var(--az);color:#fff;border-color:var(--az)}
+#resumen{font-weight:bold}
 @media print{header,.nav button,.noimp{display:none}main{max-width:none;padding:0}.dia{break-inside:avoid}}
 </style>
 </head>
 <body>
 <header>
-  <a onclick="ir('inicio')">Ministerio Congregación Collico</a>
-  <a id="acc" onclick="acceso()">ACCESO SS</a>
+  <a onclick="ir('inicio')">Servicio de predicación</a>
+  <a id="acc" onclick="acceso()">Soy el superintendente</a>
 </header>
 <main>
 <section id="inicio">
@@ -41,15 +51,22 @@ input,select{font:inherit;width:100%;padding:10px;border:2px solid var(--bd);bor
 
 <section id="cap" hidden>
   <button class="s" onclick="ir('inicio')">‹ Inicio</button>
-  <h2>Inscribirme como capitán</h2>
-  <form id="f">
-    <label for="fecha">Día</label><input type="date" id="fecha" name="fecha" required>
-    <label for="turno">Turno</label>
-    <select id="turno" name="turno"><option>10:00</option><option>19:00</option></select>
-    <label for="nombre">Nombre</label><input id="nombre" name="nombre" required>
-    <label for="telefono">Teléfono</label><input id="telefono" name="telefono" type="tel" required>
-    <p><button>Enviar inscripción</button></p>
-  </form>
+  <h1>Capitanes de predicación</h1>
+  <h2>Disponibilidad para ser capitán</h2>
+  <p>Marca los días en que puedes acompañar la predicación.</p>
+  <label for="nombre">Nombre</label><input id="nombre" autocomplete="name">
+  <label>¿Qué días puedes ser capitán?</label>
+  <p>Toca los días en que puedes. Para quitar uno, vuelve a tocarlo.</p>
+  <div class="nav"><button class="s" onclick="cmes(-1)">‹</button><h2 id="cmes"></h2><button class="s" onclick="cmes(1)">›</button></div>
+  <div id="cal" class="cal"></div>
+  <p id="resumen"></p>
+  <label>Horarios</label>
+  <p>Se aplican a todos los días que elijas. Abajo puedes cambiar los de un día suelto.</p>
+  <div id="hg" class="chips"></div>
+  <div id="hd"></div>
+  <label>Modalidad de predicación</label>
+  <div id="md" class="chips"></div>
+  <p><button id="env" onclick="enviar()">Enviar disponibilidad</button></p>
   <div id="ok"></div>
   <div id="admin"></div>
 </section>
@@ -68,18 +85,17 @@ input,select{font:inherit;width:100%;padding:10px;border:2px solid var(--bd);bor
 // 1) Pega aquí la URL que te da Google Apps Script (termina en /exec)
 const URL_SCRIPT='https://script.google.com/macros/s/AKfycbxKG0CiXUpi4Pf8P-xekS8EcF7y40ox37zahZQQ8MVr_cdHOJ4A9b8j-0TmF_4l9qQZ/exec';
 
-const $=s=>document.querySelector(s), T=['10:00','19:00'];
+const $=s=>document.querySelector(s), T=['10:00','16:00','19:00'], MD=['🚪 Casa en casa','💻 Por Zoom'];
 let clave=sessionStorage.clave||'', hoy=new Date(), M={y:hoy.getFullYear(),m:hoy.getMonth()};
 const api=p=>fetch(URL_SCRIPT+'?'+new URLSearchParams(p)).then(r=>r.json());
 const post=d=>fetch(URL_SCRIPT,{method:'POST',body:JSON.stringify(d)}).then(r=>r.json());
 const f2=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-$('#fecha').min=f2(hoy);
 if(clave)$('#acc').textContent='Salir de modo superintendente';
 
 function ir(v){
   document.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
-  if(v=='prog')prog(); if(v=='cap')cap();
+  if(v=='prog')prog(); if(v=='cap'){dib();cap()}
 }
 function refrescar(){ir([...document.querySelectorAll('section')].find(s=>!s.hidden).id)}
 function mes(n){M.m+=n;if(M.m>11){M.m=0;M.y++}if(M.m<0){M.m=11;M.y--}prog()}
@@ -93,14 +109,41 @@ async function acceso(){
   }catch(e){alert('No se pudo conectar con la planilla.')}
 }
 
-$('#f').onsubmit=async e=>{
-  e.preventDefault();const b=e.target.querySelector('button');b.disabled=true;
-  try{const r=await post({a:'inscribir',...Object.fromEntries(new FormData(e.target))});
-    $('#ok').textContent=r.error?'Error: '+r.error:'¡Listo! Quedaste inscrito.';
-    if(!r.error)e.target.reset();
-  }catch(x){$('#ok').textContent='No se pudo enviar. Revisa tu internet e intenta de nuevo.'}
+
+let C={y:hoy.getFullYear(),m:hoy.getMonth()}, G=new Set(['10:00','19:00']), S={}, MS=new Set();
+C.m++; if(C.m>11){C.m=0;C.y++}
+const tg=(s,v)=>s.has(v)?s.delete(v):s.add(v);
+function cmes(n){C.m+=n;if(C.m>11){C.m=0;C.y++}if(C.m<0){C.m=11;C.y--}dib()}
+function dia(k){S[k]?delete S[k]:S[k]=new Set(G);dib()}
+function hg(t){tg(G,t);for(const k in S)S[k]=new Set(G);dib()}
+function hd(k,t){tg(S[k],t);dib()}
+function md(t){tg(MS,t);dib()}
+function dib(){
+  $('#cmes').textContent=new Date(C.y,C.m,1).toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+  const n=new Date(C.y,C.m+1,0).getDate(),ini=(new Date(C.y,C.m,1).getDay()+6)%7,ks=Object.keys(S).sort();
+  let h='LMXJVSD'.split('').map(d=>`<b>${d}</b>`).join('')+'<i></i>'.repeat(ini);
+  for(let d=1;d<=n;d++){const k=f2(new Date(C.y,C.m,d));
+    h+=`<button class="d${S[k]?' on':''}" ${k<f2(hoy)?'disabled':''} onclick="dia('${k}')">${d}</button>`}
+  $('#cal').innerHTML=h;
+  $('#resumen').textContent=ks.length?`Has elegido ${ks.length} día${ks.length>1?'s':''}.`:'Todavía no has elegido ningún día.';
+  $('#hg').innerHTML=T.map(t=>`<button class="ch${G.has(t)?' on':''}" onclick="hg('${t}')">${t}</button>`).join('');
+  $('#md').innerHTML=MD.map(t=>`<button class="ch${MS.has(t)?' on':''}" onclick="md('${t}')">${t}</button>`).join('');
+  $('#hd').innerHTML=ks.map(k=>`<div class="tn"><b style="min-width:110px">${new Date(k+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'})}</b><span class="chips">`+T.map(t=>`<button class="ch${S[k].has(t)?' on':''}" onclick="hd('${k}','${t}')">${t}</button>`).join('')+'</span></div>').join('');
+}
+async function enviar(){
+  const nombre=$('#nombre').value.trim(),ks=Object.keys(S).sort(),o=$('#ok');
+  if(!nombre)return o.textContent='Escribe tu nombre.';
+  if(!ks.length)return o.textContent='Elige al menos un día.';
+  if(ks.some(k=>!S[k].size))return o.textContent='Cada día elegido necesita al menos un horario.';
+  if(!MS.size)return o.textContent='Elige la modalidad de predicación.';
+  const filas=ks.flatMap(k=>[...S[k]].map(t=>({fecha:k,turno:t}))),b=$('#env');
+  b.disabled=true;
+  try{const r=await post({a:'inscribir',nombre,modalidad:[...MS].join(' y '),filas});
+    if(r.error)o.textContent='Error: '+r.error;
+    else{o.textContent='¡Listo! Tu disponibilidad fue enviada.';S={};MS.clear();$('#nombre').value='';dib()}
+  }catch(x){o.textContent='No se pudo enviar. Revisa tu internet e intenta de nuevo.'}
   b.disabled=false;
-};
+}
 
 async function prog(){
   const box=$('#dias');box.textContent='Cargando…';
@@ -139,7 +182,7 @@ async function cap(){
     a.innerHTML='<h2>Inscritos</h2>'+(ks.map(k=>{
       const [f,t]=k.split('|'),r=P.find(x=>x.fecha==f&&x.turno==t)||{};
       return `<div class="dia"><h3>${f} a las ${t}. Capitán: ${esc(r.capitan)||'sin elegir'}</h3>`+
-        g[k].map(x=>`<div class="tn"><span>${esc(x.nombre)}</span><span>${esc(x.telefono)}</span><button data-f="${f}" data-t="${t}" data-n="${esc(x.nombre)}" onclick="elegir(this)">Elegir capitán</button></div>`).join('')+'</div>';
+        g[k].map(x=>`<div class="tn"><span>${esc(x.nombre)}</span><span>${esc(x.modalidad)}</span><button data-f="${f}" data-t="${t}" data-n="${esc(x.nombre)}" onclick="elegir(this)">Elegir capitán</button></div>`).join('')+'</div>';
     }).join('')||'<p>Aún no hay inscritos.</p>');
   }catch(e){a.textContent='No se pudo cargar la lista.'}
 }
