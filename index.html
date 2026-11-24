@@ -107,6 +107,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 .dia.sucio{border-color:#e0a100}
 .dia.sucio h3{background:#e0a100;color:#1b1b1b}
 .dia.sucio h3::after{content:'  · cambios sin guardar'}
+.tn input.po{flex:1 1 100%}
 .tn.gd{justify-content:flex-end}
 footer{margin-top:28px;text-align:center;font-size:13px}
 footer a{color:var(--mu);cursor:pointer}
@@ -374,6 +375,8 @@ async function prog(){
   const OFR={};I.forEach(x=>(OFR[x.fecha+'|'+x.turno]??=new Set()).add(x.nombre));
   PRG=P;PUN=Q;TER=R.sort((a,b)=>a.numero-b.numero);
   const pu=Q.map(x=>x.nombre),na=N.map(x=>x.nombre).sort();let h='';
+  const opcPunto=v=>{const man=!!v&&!pu.includes(v);
+    return `<select aria-label="Punto de encuentro"><option value="">Punto de encuentro</option>${pu.map(x=>`<option${x==v?' selected':''}>${esc(x)}</option>`).join('')}<option value="__otro"${man?' selected':''}>✏️ Otra dirección…</option></select><input class="po" placeholder="Escribe la dirección" aria-label="Otra dirección de encuentro" value="${man?esc(v):''}"${man?'':' hidden'}>`};
   const opcCap=(k,t,v)=>{const of=[...(OFR[k+'|'+t]||[])].filter(n=>na.includes(n)).sort(),otros=na.filter(n=>!of.includes(n)),o=x=>`<option${x==v?' selected':''}>${esc(x)}</option>`;
     return `<select aria-label="Capitán"><option value="">Capitán</option>${of.length?`<optgroup label="Se ofrecieron">${of.map(o).join('')}</optgroup>`:''}${otros.length?`<optgroup label="${of.length?'Otros':'Todos'}">${otros.map(o).join('')}</optgroup>`:''}${v&&!na.includes(v)?o(v):''}</select>`};
   for(let z=-1;z<=10;z++){
@@ -382,7 +385,7 @@ async function prog(){
     h+=`<div class="dia" data-k="${k}"><h3>${fechaLarga(k)}</h3>`;
     for(const t of turnos(k)){
       const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
-      h+=`<div class="tn" data-k="${k}" data-t="${t}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><b>${t}</b>${opc(pu,r.punto,'Punto de encuentro')}${opcCap(k,t,r.capitan)}<button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button></div>`}
+      h+=`<div class="tn" data-k="${k}" data-t="${t}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><b>${t}</b>${opcPunto(r.punto)}${opcCap(k,t,r.capitan)}<button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button></div>`}
     h+='<div class="tn gd"><button onclick="guardarDia(this)">Guardar día</button></div></div>';
   }
   box.innerHTML=h;marcar();tarde();
@@ -398,8 +401,10 @@ function tarde(){
     a.hidden=!cp('18:00')&&!!cp('19:00');b.hidden=!cp('19:00')&&!!cp('18:00')});
 }
 const sucio=el=>{const d=el.closest('.dia');if(d){d.classList.add('sucio');d.querySelector('.gd button').textContent='Guardar día'}};
+$('#dias').addEventListener('input',e=>{if(e.target.matches('input.po'))sucio(e.target)});
 $('#dias').addEventListener('change',e=>{
   sucio(e.target);
+  if(e.target.tagName=='SELECT'&&e.target.getAttribute('aria-label')=='Punto de encuentro'){const i=e.target.parentNode.querySelector('input.po');i.hidden=e.target.value!='__otro';if(!i.hidden)i.focus()}
   const row=e.target.closest('.tn[data-t]');
   if(row&&e.target.tagName=='SELECT'&&e.target.getAttribute('aria-label')=='Capitán'&&e.target.value&&(row.dataset.t=='18:00'||row.dataset.t=='19:00')){
     const o=row.closest('.dia').querySelector(`.tn[data-t="${row.dataset.t=='18:00'?'19:00':'18:00'}"]`);
@@ -410,7 +415,7 @@ async function guardarDia(b){
   const d=b.closest('.dia'),k=d.dataset.k,filas=[];
   d.querySelectorAll('.tn[data-t]').forEach(e=>{
     if(e.hidden)return;const s=e.querySelectorAll('select'),t=e.dataset.t;
-    const f={fecha:k,turno:t,punto:s[0].value,capitan:s[1].value,territorios:e.dataset.ter||'',nota:e.dataset.nota||''};
+    const f={fecha:k,turno:t,punto:s[0].value=='__otro'?e.querySelector('input.po').value.trim():s[0].value,capitan:s[1].value,territorios:e.dataset.ter||'',nota:e.dataset.nota||''};
     if(PRG.some(x=>x.fecha==k&&x.turno==t)||f.punto||f.capitan||f.territorios)filas.push(f);
   });
   if(filas.some(f=>f.turno=='18:00'&&f.capitan)&&filas.some(f=>f.turno=='19:00'&&f.capitan))return toast('Por la tarde solo puede haber un capitán: elige 18:00 o 19:00.',1);
