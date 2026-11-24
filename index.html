@@ -135,6 +135,8 @@ footer a{color:var(--mu);cursor:pointer}
 #lreg label input{flex:none;width:22px;height:22px;margin-top:1px}
 #lreg .rf{border-top:1px solid var(--bd);padding:6px 0}
 #lreg .rf:first-of-type{border-top:0}
+#pie{display:inline-flex;align-items:center;gap:5px}
+#pie .ic{flex:none}
 #cap #nombre{margin-bottom:26px}
 #cap .nav{margin-top:6px;margin-bottom:10px}
 #lreg .lk{opacity:.7}
@@ -301,7 +303,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
 </dialog>
 <footer>
   <div class="hb"><button class="s" onclick="fs(-1)" aria-label="Letra más pequeña">A−</button><button class="s" onclick="fs(1)" aria-label="Letra más grande">A+</button><button id="tm" class="s" onclick="tema()" aria-label="Cambiar entre modo claro y oscuro"></button></div>
-  <a id="pie" onclick="ir('acc')">Acceso</a>
+  <a id="pie" onclick="ir('acc')"><svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg><span>Acceso</span></a>
 </footer>
 </main>
 
@@ -337,6 +339,8 @@ const DS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'],
 const fechaLarga=k=>{const d=new Date(k+'T12:00');return isNaN(d)?k:`${DS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}, ${d.getFullYear()}`};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+const ICO_IN='<svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>',
+  ICO_USR='<svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>';
 function ir(v){
   if(!U&&v!='cap'&&v!='acc'){DEST=v;NOTA='Esta sección requiere acceso. Ingresa con tu usuario y contraseña.';v='acc'}
   V=v;
@@ -344,7 +348,7 @@ function ir(v){
   {const ok=R=='admin';$('#s13f').disabled=$('#s13b').disabled=!ok;$('#s13n').hidden=ok}
   $d.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
   $d.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
-  $('#pie').textContent=U?'Acceso ('+U+')':'Acceso';
+  $('#pie').innerHTML=(U?ICO_USR:ICO_IN)+'<span>'+esc(U?'Acceso ('+U+')':'Acceso')+'</span>';
   ({cap:pub,ofr:cap,pto:()=>lista('Puntos','#lpto'),ter:()=>sub(ST),prog,acc:vacc,est})[v]();
 }
 function salir(forzado){
