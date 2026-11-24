@@ -137,10 +137,11 @@ footer a{color:var(--mu);cursor:pointer}
 .gr label:has(input:checked){background:var(--ac);color:#fff;border-color:var(--ac)}
 .gr input{position:absolute;opacity:0;width:0;height:0;flex:none;padding:0}
 .gr label:has(input:focus-visible){outline:3px solid #e0a100;outline-offset:2px}
-.tn input.ho{flex:0 0 112px}
+.tn select.ho{flex:0 0 96px}
 .tn.wr{align-items:flex-start}
 @page{size:A4;margin:8mm}
-@media print{main{zoom:1}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{background:#fff}header,.tabs,footer,.noimp{display:none}main{max-width:none;padding:0}main>section{border:0;box-shadow:none;padding:0}.dia{break-inside:avoid}body.imp header,body.imp main{display:none}body.imp #pdf{display:block}}
+body.imp>#pdfw{position:fixed;left:-9999px}
+@media print{main{zoom:1}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{background:#fff}header,.tabs,footer,.noimp{display:none}main{max-width:none;padding:0}main>section{border:0;box-shadow:none;padding:0}.dia{break-inside:avoid}body.imp header,body.imp main,body.imp footer,body.imp #carga,body.imp #bar{display:none}body.imp>#pdfw{position:static;border:0;overflow:visible}body.imp #pdf{min-width:0}}
 </style>
 <script>try{document.documentElement.style.setProperty('--z',[.9,1,1.15,1.3,1.5][localStorage.fz==null?1:+localStorage.fz])}catch(e){}
 try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.t='light'}</script>
@@ -253,7 +254,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
 </dialog>
 <dialog id="dv" class="dv">
   <div id="pdfw"><div id="pdf"></div></div>
-  <p><button onclick="compartir(this)">📲 Compartir por WhatsApp</button> <button class="s" onclick="$('#dv').close()">Cerrar</button></p>
+  <p><button onclick="compartir(this)">📲 Compartir por WhatsApp</button> <button onclick="exportarPdf()">📄 Exportar PDF</button> <button class="s" onclick="$('#dv').close()">Cerrar</button></p>
 </dialog>
 <footer>
   <div class="hb"><button class="s" onclick="fs(-1)" aria-label="Letra más pequeña">A−</button><button class="s" onclick="fs(1)" aria-label="Letra más grande">A+</button><button id="tm" class="s" onclick="tema()" aria-label="Cambiar entre modo claro y oscuro"></button></div>
@@ -393,7 +394,7 @@ async function prog(){
     return `<select aria-label="Punto de encuentro"><option value="">Punto de encuentro</option>${pu.map(x=>`<option${x==v?' selected':''}>${esc(x)}</option>`).join('')}<option value="__otro"${man?' selected':''}>✏️ Otra dirección…</option></select><input class="po" placeholder="Escribe la dirección" aria-label="Otra dirección de encuentro" value="${man?esc(v):''}"${man?'':' hidden'}>`};
   const opcCap=(k,t,v)=>{const of=[...(OFR[k+'|'+t]||[])].filter(n=>na.includes(n)).sort(),otros=na.filter(n=>!of.includes(n)),o=x=>`<option${x==v?' selected':''}>${esc(x)}</option>`;
     return `<select aria-label="Capitán"><option value="">Capitán</option>${of.length?`<optgroup label="Se ofrecieron">${of.map(o).join('')}</optgroup>`:''}${otros.length?`<optgroup label="${of.length?'Otros':'Todos'}">${otros.map(o).join('')}</optgroup>`:''}${v&&!na.includes(v)?o(v):''}</select>`};
-  FILA=(k,r)=>`<div class="tn wr" data-k="${k}" data-t="${r.turno||'10:00'}" data-orig="${r.turno||''}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><input type="time" class="ho" value="${r.turno||'10:00'}" aria-label="Horario">${opcPunto(r.punto)}<div class="gr">${grHtml(r.capitan)}</div><button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button><button class="s x" onclick="quitarFila(this)" aria-label="Quitar horario">✕</button></div>`;
+  FILA=(k,r)=>`<div class="tn wr" data-k="${k}" data-t="${hh(r.turno||'10:00')}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><select class="ho" aria-label="Horario">${(FIN.includes(hh(r.turno))||!r.turno?FIN:[...FIN,hh(r.turno)]).map(x=>`<option${x==hh(r.turno||'10:00')?' selected':''}>${x}</option>`).join('')}</select>${opcPunto(r.punto)}<div class="gr">${grHtml(r.capitan)}</div><button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button><button class="s x" onclick="quitarFila(this)" aria-label="Quitar horario">✕</button></div>`;
   DIA=z=>{let h='';
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));
     if(esFin(k)){
@@ -410,11 +411,12 @@ async function prog(){
   box.innerHTML=h;marcar();tarde();zbot();
 }
 let DIA=null,FILA=null,ZMIN=1,ZMAX=1;
+const hh=t=>String(t||'').split('~')[0];
 const GRUPOS=['Grupo 1','Grupo 2','Grupo 3','Grupo 4','Grupo 5','Grupo General'];
 const grHtml=v=>{const s=String(v||'').split(',').map(x=>x.trim());return GRUPOS.map(g=>`<label><input type="checkbox" value="${g}"${s.includes(g)?' checked':''}>${g}</label>`).join('')};
 const grTxt=v=>{const L=String(v||'').split(',').map(x=>x.trim()).filter(Boolean);if(!L.length)return '';const n=L.filter(x=>/^Grupo \d$/.test(x)).map(x=>x.slice(6));return L.includes('Grupo General')&&!n.length?'Grupo General':n.length==L.length?(n.length>1?'Grupos ':'Grupo ')+n.join(', '):L.join(', ')};
 function masFila(b){const d=b.closest('.dia');b.closest('.tn').insertAdjacentHTML('beforebegin',FILA(d.dataset.k,{}));sucio(b)}
-function quitarFila(b){const r=b.closest('.tn'),d=r.closest('.dia');sucio(r);(d._del??=[]).push(r.dataset.orig);r.remove()}
+function quitarFila(b){const r=b.closest('.tn'),d=r.closest('.dia');sucio(r);r.remove()}
 function zbot(){$('#zant').disabled=ZMIN<=-1;$('#zsig').disabled=ZMAX>=10}
 function masDia(s){
   if(!DIA)return;
@@ -437,7 +439,7 @@ const sucio=el=>{const d=el.closest('.dia');if(d){d.classList.add('sucio');d.que
 $('#dias').addEventListener('input',e=>{if(e.target.matches('input.po'))sucio(e.target)});
 $('#dias').addEventListener('change',e=>{
   sucio(e.target);
-  if(e.target.matches('input.ho'))e.target.closest('.tn').dataset.t=e.target.value;
+  if(e.target.matches('select.ho'))e.target.closest('.tn').dataset.t=e.target.value;
   if(e.target.matches('.gr input')&&e.target.checked){const gen=e.target.value=='Grupo General';e.target.closest('.gr').querySelectorAll('input').forEach(c=>{if(c!==e.target&&((c.value=='Grupo General')==!gen||gen))c.checked=false})}
   if(e.target.tagName=='SELECT'&&e.target.getAttribute('aria-label')=='Punto de encuentro'){const i=e.target.parentNode.querySelector('input.po');i.hidden=e.target.value!='__otro';if(!i.hidden)i.focus()}
   const row=e.target.closest('.tn[data-t]');
@@ -464,22 +466,19 @@ async function guardarDia(b){
   b.disabled=false;
 }
 async function guardarFin(b,d,k){
-  const filas=[],vacias=new Set((d._del||[]).filter(Boolean)),vistos=new Set();
+  const filas=[],cuenta={};
   for(const e of d.querySelectorAll('.tn.wr')){
-    const t=e.querySelector('input.ho').value,s=e.querySelector('select'),
-      f={fecha:k,turno:t,punto:s.value=='__otro'?e.querySelector('input.po').value.trim():s.value,capitan:[...e.querySelectorAll('.gr input:checked')].map(c=>c.value).join(', '),territorios:e.dataset.ter||'',nota:e.dataset.nota||''};
-    if(e.dataset.orig&&e.dataset.orig!=t)vacias.add(e.dataset.orig);
+    const t=e.querySelector('select.ho').value,s=e.querySelectorAll('select')[1],
+      f={fecha:k,punto:s.value=='__otro'?e.querySelector('input.po').value.trim():s.value,capitan:[...e.querySelectorAll('.gr input:checked')].map(c=>c.value).join(', '),territorios:e.dataset.ter||'',nota:e.dataset.nota||''};
     if(!(f.punto||f.capitan||f.territorios))continue;
-    if(!t)return toast('Falta el horario en una de las filas.',1);
-    if(vistos.has(t))return toast('Hay dos filas con el horario '+t+'. Usa horarios distintos.',1);
-    vistos.add(t);filas.push(f);
+    cuenta[t]=(cuenta[t]||0)+1;f.turno=cuenta[t]>1?t+'~'+cuenta[t]:t;filas.push(f);
   }
-  vistos.forEach(t=>vacias.delete(t));
-  const env=[...filas,...[...vacias].filter(t=>PRG.some(x=>x.fecha==k&&x.turno==t)).map(t=>({fecha:k,turno:t,punto:'',capitan:'',territorios:'',nota:''}))];
+  const nuevas=new Set(filas.map(f=>f.turno));
+  const env=[...filas,...PRG.filter(x=>x.fecha==k&&!nuevas.has(x.turno)&&(x.punto||x.capitan||x.territorios)).map(x=>({fecha:k,turno:x.turno,punto:'',capitan:'',territorios:'',nota:''}))];
   if(!env.length)return toast('No hay nada que guardar en este día.');
   b.disabled=true;
   try{const r=await llamar('guardarLote',{hoja:'Programa',filas:env});
-    if(r.ok){PRG=PRG.filter(x=>x.fecha!=k).concat(filas);d._del=[];d.querySelectorAll('.tn.wr').forEach(e=>e.dataset.orig=e.querySelector('input.ho').value);d.classList.remove('sucio');b.textContent='Guardar día';toast('✓ Día guardado')}
+    if(r.ok){PRG=PRG.filter(x=>x.fecha!=k).concat(filas);d.classList.remove('sucio');b.textContent='Guardar día';toast('✓ Día guardado')}
     else if(r.error!='ocupado')toast('No se pudo guardar. Intenta de nuevo.',1);
   }catch(x){toast('No se pudo guardar. Revisa tu internet.',1)}
   b.disabled=false;
@@ -540,12 +539,14 @@ function vistaPrevia(){
   Object.keys(G).sort().forEach((k,di)=>G[k].forEach((x,j)=>{
     const cl=`${di%2?'':'am'}${j==0?' nd':''}`;
     b+=x.fin?`<tr class="${cl}"><td class="f">${fc(k)}</td><td class="fn" colspan="${1+C.length}">Arreglo por Grupo de Servicio</td></tr>`
-      :`<tr class="${cl}">${j==0?`<td class="f" rowspan="${G[k].length}">${fc(k)}</td>`:''}<td><span class="hr">${x.t}</span></td>${C.map(c=>`<td>${cel(c,x.r)}</td>`).join('')}</tr>`;
+      :`<tr class="${cl}">${j==0?`<td class="f" rowspan="${G[k].length}">${fc(k)}</td>`:''}<td><span class="hr">${hh(x.t)}</span></td>${C.map(c=>`<td>${cel(c,x.r)}</td>`).join('')}</tr>`;
   }));
   const ks=Object.keys(G).sort();
   $('#pdf').innerHTML=`<div class="ph"><h1>PROGRAMA DE PREDICACIÓN</h1><h2>CONGREGACIÓN COLLICO</h2><div class="rg">${ks.length>1?fc(ks[0])+' al '+fc(ks[ks.length-1]):fc(ks[0])}</div></div><table><thead><tr><th>Fecha</th><th>Horario</th>${C.map(c=>`<th>${c.t}</th>`).join('')}</tr></thead><tbody>${b}</tbody></table><p class="pie">Generado el ${fechaLarga(f2(hoy))}</p>`;
   $('#dv').showModal();
 }
+function exportarPdf(){const w=$('#pdfw');$('#dv').close();$d.body.appendChild(w);$d.body.classList.add('imp');print()}
+onafterprint=()=>{const w=$d.body.querySelector(':scope>#pdfw');if(w)$('#dv').insertBefore(w,$('#dv').firstChild);$d.body.classList.remove('imp')};
 // Genera una imagen PNG del programa (sin librerías externas)
 function imagen(){
   return new Promise((ok,mal)=>{
