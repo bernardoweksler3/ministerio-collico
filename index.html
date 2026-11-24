@@ -135,6 +135,7 @@ footer a{color:var(--mu);cursor:pointer}
 #lreg .rf{border-top:1px solid var(--bd);padding:6px 0}
 #lreg .rf:first-of-type{border-top:0}
 #lreg .lk{opacity:.7}
+#lreg details.otro{margin:6px 0 2px}
 #dlt>summary{font-size:1.05em;margin:10px 0}
 .sub{display:flex;gap:6px;margin:6px 0 12px}
 .sub button{background:transparent;color:var(--az);border:1px solid var(--bd);box-shadow:none}
@@ -200,7 +201,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
     <button id="sb-reg" onclick="sub('reg')">Registro S-13</button>
   </div>
   <div id="t-lista">
-    <details class="noimp"><summary>Cargar lista completa</summary>
+    <details class="so noimp" hidden><summary>Cargar lista completa · solo administrador</summary>
       <p>Pega una línea por territorio: primero el número y luego el nombre. Ejemplo: 1 Villa Los Álamos</p>
       <textarea id="tl" rows="8"></textarea>
       <p><button onclick="tcargar()">Cargar territorios</button></p>
@@ -210,16 +211,17 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
       <div id="lter"></div>
       <p class="so" hidden><button class="pel" onclick="borrarTodo('Territorios','todos los territorios')">Borrar todo</button></p>
     </details>
+    <details class="noimp"><summary>Importar formularios S-13 (.docx)</summary>
+      <p id="s13n" class="mu" hidden>🔒 Solo el administrador puede importar formularios.</p>
+      <p>Elige uno o más formularios S-13 llenos. Se agregan al registro y se actualiza el "Último" de cada territorio. Si importas el mismo archivo dos veces, no se repite nada.</p>
+      <input type="file" id="s13f" accept=".docx" multiple aria-label="Archivos S-13">
+      <p><button id="s13b" onclick="s13Importar(this)">Importar</button></p><p id="s13r" class="mu"></p>
+    </details>
   </div>
   <div id="t-reg" hidden>
     <p class="mu">Marca con ✓ los territorios que sí se trabajaron en cada programa. Al marcarlos quedan anotados en el formulario S-13 y se actualiza el "Último" de cada territorio. Si no se trabajó, déjalo sin marcar.</p>
     <div id="s13bt"></div>
     <div id="lreg" class="regf"></div>
-    <details class="so noimp" hidden><summary>Importar formularios S-13 (.docx) · solo administrador</summary>
-      <p>Elige uno o más formularios S-13 llenos. Se agregan al registro y se actualiza el "Último" de cada territorio. Si importas el mismo archivo dos veces, no se repite nada.</p>
-      <input type="file" id="s13f" accept=".docx" multiple aria-label="Archivos S-13">
-      <p><button onclick="s13Importar(this)">Importar</button></p><p id="s13r" class="mu"></p>
-    </details>
   </div>
 </section>
 
@@ -333,6 +335,7 @@ function ir(v){
   if(!U&&v!='cap'&&v!='acc'){DEST=v;NOTA='Esta sección requiere acceso. Ingresa con tu usuario y contraseña.';v='acc'}
   V=v;
   $d.querySelectorAll('.so').forEach(e=>e.hidden=R!='admin');
+  {const ok=R=='admin';$('#s13f').disabled=$('#s13b').disabled=!ok;$('#s13n').hidden=ok}
   $d.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
   $d.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
   $('#pie').textContent=U?'Acceso ('+U+')':'Acceso';
@@ -496,18 +499,31 @@ function regDibujar(){
   const dias=[];
   for(let z=0;z>=-21;z--){
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));
-    const R=PRG.filter(x=>x.fecha==k&&parseT(x.territorios).length).sort((a,b)=>a.turno.localeCompare(b.turno));
-    if(R.length)dias.push([k,R]);
+    const R=PRG.filter(x=>x.fecha==k&&(x.capitan||x.punto||x.territorios)).sort((a,b)=>a.turno.localeCompare(b.turno));
+    const E=ASG.filter(a=>String(a.id).startsWith('p|'+k+'|otro|'));
+    if(R.length||E.length)dias.push([k,R,E]);
   }
   const zona=n=>{const t=TER.find(x=>String(x.numero)==String(n));return t?lim(t.zona):''};
-  $('#lreg').innerHTML=dias.length?dias.map(([k,R])=>`<div class="dia"><h3>${fechaLarga(k)}</h3>`+R.map(r=>{
+  $('#lreg').innerHTML=dias.length?dias.map(([k,R,E])=>`<div class="dia"><h3>${fechaLarga(k)}</h3>`+R.map(r=>{
     const cap=esFin(k)?grTxt(r.capitan):String(r.capitan||'').trim();
     return `<div class="rf"><div class="mu"><b>${hh(r.turno)}</b>${r.punto?' · '+esc(r.punto):''}${cap?' · '+esc(cap):''}</div>`+parseT(r.territorios).map(([n,l])=>{
       const id='p|'+k+'|'+r.turno+'|'+n,rec=ASG.find(a=>String(a.numero)==String(n)&&a.asignado==k),lock=rec&&rec.id!=id;
-      return `<label class="${lock?'lk':''}"><input type="checkbox" data-k="${k}" data-t="${esc(r.turno)}" data-n="${esc(n)}" data-l="${esc(l)}" data-cap="${esc(cap)}"${rec?' checked':''}${lock?' disabled':''}><span>Territorio ${esc(n)} ${esc(zona(n))}${l?` <small>(manzanas ${esc(l.split('').join(', '))})</small>`:''}${lock?' <small>· ya está en el S-13</small>':''}</span></label>`}).join('')+'</div>'}).join('')+'</div>').join(''):'<p>No hay programas con territorios en los últimos 21 días.</p>';
+      return `<label class="${lock?'lk':''}"><input type="checkbox" data-k="${k}" data-t="${esc(r.turno)}" data-n="${esc(n)}" data-l="${esc(l)}" data-cap="${esc(cap)}"${rec?' checked':''}${lock?' disabled':''}><span>Territorio ${esc(n)} ${esc(zona(n))}${l?` <small>(manzanas ${esc(l.split('').join(', '))})</small>`:''}${lock?' <small>· ya está en el S-13</small>':''}</span></label>`}).join('')+'</div>'}).join('')+
+    (E.length?`<div class="rf"><div class="mu"><b>Otros territorios</b></div>`+E.map(a=>`<label><input type="checkbox" data-k="${k}" data-t="otro" data-n="${esc(a.numero)}" data-l="${esc(String(a.nota||'').replace(/[^A-Za-z]/g,''))}" data-cap="${esc(a.nombre)}" checked><span>Territorio ${esc(a.numero)} ${esc(zona(a.numero))}${a.nota?` <small>(manzanas ${esc(a.nota)})</small>`:''}${a.nombre?` <small>· ${esc(a.nombre)}</small>`:''}</span></label>`).join('')+'</div>':'')+
+    `<details class="otro"><summary>＋ Otro territorio</summary><div class="tn"><select class="ot-n" aria-label="Territorio trabajado"><option value="">Territorio…</option>${TER.map(x=>`<option value="${esc(x.numero)}">${esc(x.numero)} ${esc(lim(x.zona))}</option>`).join('')}</select><input class="ot-c" placeholder="Asignado a" aria-label="Asignado a" value="${esc(R.map(r=>esFin(k)?grTxt(r.capitan):String(r.capitan||'').trim()).find(Boolean)||'')}"><input class="ot-l" placeholder="Letras (opcional)" aria-label="Letras de las manzanas" maxlength="12"><button data-k="${k}" onclick="regOtro(this)">Agregar</button></div></details></div>`).join(''):'<p>No hay programas en los últimos 21 días.</p>';
   regExp();
 }
 $('#lreg').addEventListener('change',e=>{if(e.target.matches('input[type=checkbox]'))regGuardar(e.target)});
+async function regOtro(b){
+  const w=b.closest('.tn'),k=b.dataset.k,n=w.querySelector('.ot-n').value,cap=w.querySelector('.ot-c').value.trim(),l=w.querySelector('.ot-l').value.toUpperCase().replace(/[^A-Z]/g,'');
+  if(!n)return toast('Elige el territorio que se trabajó.',1);
+  if(ASG.some(a=>String(a.numero)==String(n)&&a.asignado==k))return toast('Ese territorio ya está registrado ese día.',1);
+  const f={id:'p|'+k+'|otro|'+n,numero:n,nombre:cap,asignado:k,completado:l?'':k,nota:l?l.split('').join(', '):''};
+  b.disabled=true;
+  try{const r=await llamar('guardar',{hoja:'Asignaciones',fila:f});if(!r.ok)throw 0;ASG=ASG.concat(f);toast('✓ Anotado en el S-13');regDibujar()}
+  catch(e){toast('No se pudo guardar. Intenta de nuevo.',1)}
+  b.disabled=false;
+}
 async function regGuardar(cb){
   const {k,t,n,l,cap}=cb.dataset,id='p|'+k+'|'+t+'|'+n;
   cb.disabled=true;
