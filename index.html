@@ -48,6 +48,8 @@ summary{cursor:pointer;font-weight:600;color:var(--az);margin:6px 0}
 .dia.ok h3{background:var(--v);color:#fff}
 .dia.ok h3::after{content:'  ✓ Listo'}
 .tn.ok b::after{content:' ✓';color:var(--v)}
+.tn.ro .bt{flex:0 0 auto;display:flex;gap:6px;margin-left:auto}
+.tn.ro button{padding:3px 9px;font-size:13px;border-radius:7px}
 .tn.ro .p1{flex:0 1 auto;min-width:0;margin-right:4px}
 .tn input{flex:1 1 130px;width:auto;padding:5px 8px}
 .tn select{flex:1 1 150px;width:auto;padding:5px 8px}
@@ -337,7 +339,7 @@ let LST={};
 const edHtml=(f,h,nuevo)=>'<div class="tn">'+CAMPOS[h].map(([c,t])=>`<input placeholder="${t}" aria-label="${t}" data-c="${c}" value="${esc(f[c])}">`).join('')+
   `<button onclick="gfila(this,'${h}')">${nuevo?'Agregar':'Guardar'}</button>${nuevo?'':`<button class="s" onclick="cancelar(this,'${h}')">Cancelar</button>`}</div>`;
 const vista=(f,h)=>'<div class="tn ro">'+CAMPOS[h].map(([c],i)=>f[c]?(i==0?`<b class="p1">${esc(f[c])}</b>`:`<span>${esc(f[c])}</span>`):'').join('')+
-  (h=='Territorios'?`<span class="ult">${esc(hace(ultima(f.numero)))}</span>`:'')+`<button class="s" onclick="editar(this,'${h}')">Editar</button><button class="pel" onclick="bfila(this,'${h}')">Borrar</button></div>`;
+  (h=='Territorios'?`<span class="ult">${esc(hace(ultima(f.numero)))}</span>`:'')+`<span class="bt"><button class="s" onclick="editar(this,'${h}')">Editar</button><button class="pel" onclick="bfila(this,'${h}')">Borrar</button></span></div>`;
 async function lista(h,sel){
   const box=$(sel);box.textContent='Cargando…';
   let L;try{L=await llamar('listar',{hoja:h})}catch(e){box.textContent='No se pudo cargar.';return}
