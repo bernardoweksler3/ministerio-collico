@@ -250,7 +250,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
 // Pega aquí la URL que te da Google Apps Script (termina en /exec)
 const URL_SCRIPT='https://script.google.com/macros/s/AKfycbxKG0CiXUpi4Pf8P-xekS8EcF7y40ox37zahZQQ8MVr_cdHOJ4A9b8j-0TmF_4l9qQZ/exec';
 
-const $=s=>$d.querySelector(s),$d=document, SEM=['10:00','18:00','19:00'], FIN=['10:00','10:30','11:00'], MD=['🚪 Casa en casa','💻 Por Zoom'];
+const $=s=>$d.querySelector(s),$d=document, SEM=['10:00','18:00','19:00'], FIN=['10:00','10:30','11:00'], JUE=['10:00'], MD=['🚪 Casa en casa','💻 Por Zoom'];
 const CAMPOS={Puntos:[['nombre','Nombre'],['direccion','Dirección']],
   Territorios:[['numero','Número'],['zona','Nombre'],['asignado','Asignado a'],['nota','Nota']]};
 const leerSes=()=>{try{const o=JSON.parse(localStorage.ses||'null');if(o&&o.e>Date.now())return o;localStorage.removeItem('ses')}catch(e){}return null};
@@ -272,7 +272,7 @@ const llamar=(a,d={})=>{
 const FZ=[.9,1,1.15,1.3,1.5];
 function fs(d){const i=Math.min(FZ.length-1,Math.max(0,(localStorage.fz==null?1:+localStorage.fz)+d));try{localStorage.fz=i}catch(e){}$d.documentElement.style.setProperty('--z',FZ[i])}
 const f2=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-const turnos=k=>{const w=new Date(k+'T12:00').getDay();return w==0||w==6?FIN:SEM};
+const turnos=k=>{const w=new Date(k+'T12:00').getDay();return w==0||w==6?FIN:w==4?JUE:SEM};
 const DS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'],
   MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const fechaLarga=k=>{const d=new Date(k+'T12:00');return isNaN(d)?k:`${DS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}, ${d.getFullYear()}`};
@@ -388,13 +388,13 @@ async function prog(){
   box.innerHTML=h;marcar();tarde();
 }
 const comp=(k,t)=>{const r=PRG.find(x=>x.fecha==k&&x.turno==t);return !!(r&&r.punto&&r.capitan&&r.territorios)};
-const listo=k=>!esFin(k)&&comp(k,'10:00')&&(comp(k,'18:00')||comp(k,'19:00'));
+const listo=k=>!esFin(k)&&comp(k,'10:00')&&(turnos(k)===JUE||comp(k,'18:00')||comp(k,'19:00'));
 function marcar(){
   $d.querySelectorAll('#dias .dia').forEach(d=>{d.classList.toggle('ok',listo(d.dataset.k));d.querySelectorAll('.tn[data-t]').forEach(r=>r.classList.toggle('ok',comp(r.dataset.k,r.dataset.t)))});
 }
 function tarde(){
   $d.querySelectorAll('#dias .dia').forEach(d=>{const k=d.dataset.k;if(esFin(k))return;
-    const cp=t=>((PRG.find(x=>x.fecha==k&&x.turno==t)||{}).capitan||'').trim(),a=d.querySelector('[data-t="18:00"]'),b=d.querySelector('[data-t="19:00"]');
+    const cp=t=>((PRG.find(x=>x.fecha==k&&x.turno==t)||{}).capitan||'').trim(),a=d.querySelector('[data-t="18:00"]'),b=d.querySelector('[data-t="19:00"]');if(!a||!b)return;
     a.hidden=!cp('18:00')&&!!cp('19:00');b.hidden=!cp('19:00')&&!!cp('18:00')});
 }
 const sucio=el=>{const d=el.closest('.dia');if(d){d.classList.add('sucio');d.querySelector('.gd button').textContent='Guardar día'}};
@@ -503,6 +503,7 @@ function dia(k){
 function hd(k,t){tg(S[k],t);dib()}
 function md(t){tg(MS,t);dib()}
 function estado(k){
+  if(turnos(k)===JUE)return OC.has(k+'|10:00')?'v':'g';
   const n=(OC.has(k+'|10:00')?1:0)+(OC.has(k+'|18:00')||OC.has(k+'|19:00')?1:0);
   return n==0?'g':n==2?'v':'a';
 }
@@ -526,7 +527,7 @@ function dib(){
   $('#cal').innerHTML=h;
   $('#resumen').textContent=ks.length?`Has elegido ${ks.length} día${ks.length>1?'s':''}.`:'Todavía no has elegido ningún día.';
   $('#md').innerHTML=MD.map(t=>`<button class="ch${MS.has(t)?' on':''}" onclick="md('${t}')">${t}</button>`).join('');
-  const inf=INFO?`<div class="aviso"><b>${fechaLarga(INFO)}</b><br>`+(esFin(INFO)?'Arreglo por Grupo de Servicio':SEM.filter(t=>OC.has(INFO+'|'+t)).map(t=>t+' · Capitán: '+esc(OC.get(INFO+'|'+t))).join('<br>'))+'</div>':'';
+  const inf=INFO?`<div class="aviso"><b>${fechaLarga(INFO)}</b><br>`+(esFin(INFO)?'Arreglo por Grupo de Servicio':turnos(INFO).filter(t=>OC.has(INFO+'|'+t)).map(t=>t+' · Capitán: '+esc(OC.get(INFO+'|'+t))).join('<br>'))+'</div>':'';
   $('#hd').innerHTML=inf+(ks.length?'<label>Elige los horarios de cada día</label>'+ks.map(k=>`<div class="tn"><b style="min-width:110px">${new Date(k+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'})}</b><span class="chips">`+turnos(k).map(t=>{const o=tomado(k,t);return `<button class="ch${S[k].has(t)?' on':''}" ${o?'disabled':''} onclick="hd('${k}','${t}')">${t}${o?' ('+esc(o)+')':''}</button>`}).join('')+'</span></div>').join(''):'');
 }
 async function enviar(){
@@ -551,7 +552,7 @@ async function cap(){
     const [I,P]=await Promise.all([llamar('listar',{hoja:'Inscripciones'}),llamar('listar',{hoja:'Programa'})]);
     if(!Array.isArray(I))return;
     const cd=(f,t)=>((P.find(x=>x.fecha==f&&x.turno==t)||{}).capitan||'').trim();
-    const vs=new Set(),g={};I.filter(x=>{const q=x.fecha+'|'+x.turno+'|'+x.nombre;return x.fecha>=f2(hoy)&&!vs.has(q)&&vs.add(q)}).forEach(x=>((g[x.fecha]??={})[x.turno]??=[]).push(x));
+    const vs=new Set(),g={};I.filter(x=>{const q=x.fecha+'|'+x.turno+'|'+x.nombre;return x.fecha>=f2(hoy)&&turnos(x.fecha).includes(x.turno)&&!vs.has(q)&&vs.add(q)}).forEach(x=>((g[x.fecha]??={})[x.turno]??=[]).push(x));
     const fs=Object.keys(g).sort();
     const tot=fs.reduce((s,f)=>s+Object.values(g[f]).reduce((q,l)=>q+l.length,0),0);
     a.innerHTML=(tot?`<p class="mu">${tot} ofrecimiento${tot>1?'s':''} en ${fs.length} día${fs.length>1?'s':''}.</p>`:'')+(fs.map((f,i)=>`<div class="fd c${i%2}"><h3>${fechaLarga(f)}</h3>`+Object.keys(g[f]).sort().map(t=>{
