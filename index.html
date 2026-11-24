@@ -130,6 +130,12 @@ footer a{color:var(--mu);cursor:pointer}
 #pdf .dir{color:#5b6a76;font-size:10.5px}
 #pdf td.fn{font-style:italic;color:#3d5666;text-align:center}
 #pdf .pie{margin:6px 0 0;text-align:center;color:#6b7a82;font-size:9.5px}
+#lreg label{display:flex;gap:8px;align-items:flex-start;padding:7px 2px;cursor:pointer}
+#lreg label input{flex:none;width:22px;height:22px;margin-top:1px}
+#lreg .rf{border-top:1px solid var(--bd);padding:6px 0}
+#lreg .rf:first-of-type{border-top:0}
+#lreg .lk{opacity:.7}
+#s13bt{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
 #pdfw{overflow-x:auto;border-radius:8px;border:1px solid var(--bd)}
 .dv{width:min(96vw,700px);padding:12px}
 .gr{display:flex;gap:5px;flex-wrap:wrap;flex:1 1 100%}
@@ -157,6 +163,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
   <button data-v="pto" onclick="ir('pto')">Puntos de encuentro</button>
   <button data-v="ter" onclick="ir('ter')">Territorios</button>
   <button data-v="prog" onclick="ir('prog')">Programa</button>
+  <button data-v="reg" onclick="ir('reg')">Registro S-13</button>
   <button data-v="est" onclick="ir('est')">Estadísticas</button>
 </nav>
 
@@ -190,9 +197,21 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
     <textarea id="tl" rows="8"></textarea>
     <p><button onclick="tcargar()">Cargar territorios</button></p>
   </details>
+  <details class="so noimp" hidden><summary>Importar formularios S-13 (.docx)</summary>
+    <p>Elige uno o más formularios S-13 llenos. Se agregan al registro de asignaciones y se actualiza el "Último" de cada territorio. Si importas el mismo archivo dos veces, no se repite nada.</p>
+    <input type="file" id="s13f" accept=".docx" multiple aria-label="Archivos S-13">
+    <p><button onclick="s13Importar(this)">Importar</button></p><p id="s13r" class="mu"></p>
+  </details>
   <input id="tbus" class="noimp" placeholder="Buscar territorio por número o nombre" aria-label="Buscar territorio" oninput="tfiltro()">
   <div id="lter"></div>
   <p class="so" hidden><button class="pel" onclick="borrarTodo('Territorios','todos los territorios')">Borrar todo</button></p>
+</section>
+
+<section id="reg" hidden>
+  <h1>Registro S-13</h1>
+  <p class="mu">Marca con ✓ los territorios que sí se trabajaron en cada programa. Al marcarlos quedan anotados en el formulario S-13 y se actualiza el "Último" en Territorios. Si no se trabajó, déjalo sin marcar.</p>
+  <div id="s13bt"></div>
+  <div id="lreg" class="regf"></div>
 </section>
 
 <section id="prog" hidden>
@@ -308,7 +327,7 @@ function ir(v){
   $d.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
   $d.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
   $('#pie').textContent=U?'Acceso ('+U+')':'Acceso';
-  ({cap:pub,ofr:cap,pto:()=>lista('Puntos','#lpto'),ter:()=>lista('Territorios','#lter'),prog,acc:vacc,est})[v]();
+  ({cap:pub,ofr:cap,pto:()=>lista('Puntos','#lpto'),ter:()=>lista('Territorios','#lter'),prog,reg,acc:vacc,est})[v]();
 }
 function salir(forzado){
   U=K=R='';olvidar();DEST='cap';
@@ -364,6 +383,158 @@ async function nombresAdm(){
 }
 async function nadd(){const nuevo=$('#nn').value.trim();if(!nuevo)return;await llamar('nombreNuevo',{nuevo});$('#nn').value='';nombresAdm()}
 async function nbor(n){if(confirm('¿Quitar a '+n+' de la lista?')){await llamar('nombreBorrar',{nuevo:n});nombresAdm()}}
+/* Registro S-13: lectura/escritura de archivos .docx (zip) sin librerías */
+const crcT=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc32=u=>{let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=crcT[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0};
+function zipLeer(u){
+  const dv=new DataView(u.buffer,u.byteOffset,u.byteLength);let e=u.length-22;
+  while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;
+  if(e<0)throw new Error('zip');
+  const n=dv.getUint16(e+10,true),out=[];let p=dv.getUint32(e+16,true);
+  for(let i=0;i<n;i++){
+    if(dv.getUint32(p,true)!==0x02014b50)throw new Error('zip');
+    const nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true),cs=dv.getUint32(p+20,true);
+    const name=new TextDecoder().decode(u.subarray(p+46,p+46+nl)),ds=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true);
+    out.push({name,m:dv.getUint16(p+10,true),tm:dv.getUint16(p+12,true),dt:dv.getUint16(p+14,true),crc:dv.getUint32(p+16,true),cs,us:dv.getUint32(p+24,true),raw:u.subarray(ds,ds+cs)});
+    p+=46+nl+xl+cl;
+  }
+  return out;
+}
+async function inflar(en){
+  if(en.m===0)return en.raw;
+  const ds=new DecompressionStream('deflate-raw'),w=ds.writable.getWriter();w.write(en.raw);w.close();
+  return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+}
+function zipEscribir(L){
+  const te=new TextEncoder(),parts=[],cd=[];let off=0;
+  L.forEach(en=>{
+    const nb=te.encode(en.name),lh=new Uint8Array(30+nb.length),d=new DataView(lh.buffer);
+    d.setUint32(0,0x04034b50,true);d.setUint16(4,20,true);d.setUint16(6,0x0800,true);d.setUint16(8,en.m,true);d.setUint16(10,en.tm,true);d.setUint16(12,en.dt,true);d.setUint32(14,en.crc,true);d.setUint32(18,en.cs,true);d.setUint32(22,en.us,true);d.setUint16(26,nb.length,true);lh.set(nb,30);
+    const ch=new Uint8Array(46+nb.length),c=new DataView(ch.buffer);
+    c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(10,en.m,true);c.setUint16(12,en.tm,true);c.setUint16(14,en.dt,true);c.setUint32(16,en.crc,true);c.setUint32(20,en.cs,true);c.setUint32(24,en.us,true);c.setUint16(28,nb.length,true);c.setUint32(42,off,true);ch.set(nb,46);
+    parts.push(lh,en.raw);cd.push(ch);off+=lh.length+en.raw.length;
+  });
+  const size=cd.reduce((s,x)=>s+x.length,0),end=new Uint8Array(22),e=new DataView(end.buffer);
+  e.setUint32(0,0x06054b50,true);e.setUint16(8,L.length,true);e.setUint16(10,L.length,true);e.setUint32(12,size,true);e.setUint32(16,off,true);
+  return new Blob([...parts,...cd,end],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+}
+/* Fechas del S-13: vienen como día/mes sin año; se toma la más reciente que ya pasó */
+function fechaS13(s){
+  const m=/(\d{1,2})\s*[\/.]\s*(\d{1,2})(?:\s*[\/.]\s*(\d{2,4}))?/.exec(s||'');if(!m)return '';
+  const d=+m[1],mo=+m[2];if(d<1||d>31||mo<1||mo>12)return '';
+  const y=m[3]?(+m[3]<100?2000+ +m[3]:+m[3]):hoy.getFullYear();let f=new Date(y,mo-1,d);
+  if(!m[3]&&f>hoy)f=new Date(y-1,mo-1,d);
+  return f2(f);
+}
+async function s13Leer(file){
+  const z=zipLeer(new Uint8Array(await file.arrayBuffer())),en=z.find(x=>x.name=='word/document.xml');
+  if(!en)throw new Error('docx');
+  const doc=new DOMParser().parseFromString(new TextDecoder().decode(await inflar(en)),'application/xml');
+  const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main',out=[];
+  const txt=tc=>[...tc.getElementsByTagNameNS(W,'t')].map(t=>t.textContent).join('').replace(/\s+/g,' ').trim();
+  const hijos=(n,t)=>[...n.childNodes].filter(x=>x.localName==t);
+  [...doc.getElementsByTagNameNS(W,'tbl')].forEach(tb=>{
+    const rows=hijos(tb,'tr');
+    for(let i=2;i+1<rows.length;i+=2){
+      const a=hijos(rows[i],'tc'),b=hijos(rows[i+1],'tc');
+      if(a.length!=6||b.length!=10)continue;
+      const numero=txt(a[0]);if(!/^\d+$/.test(numero))continue;
+      for(let j=0;j<4;j++){
+        const nombre=txt(a[2+j]),d1=txt(b[2+2*j]),d2=txt(b[3+2*j]);
+        const asignado=fechaS13(d1)||fechaS13(d2),completado=fechaS13(d2);
+        if(!asignado)continue;
+        out.push({numero,nombre,asignado,completado,nota:!completado&&d2&&!fechaS13(d2)?d2:''});
+      }
+    }
+  });
+  return out;
+}
+async function s13Importar(b){
+  const fs=[...$('#s13f').files],m=$('#s13r');
+  if(!fs.length)return m.textContent='Primero elige uno o más archivos .docx.';
+  b.disabled=true;m.textContent='Leyendo…';
+  try{
+    let filas=[];
+    for(const f of fs){const L=await s13Leer(f);if(!L.length){m.textContent='No encontré asignaciones en "'+f.name+'". ¿Es un formulario S-13?';b.disabled=false;return}filas=filas.concat(L)}
+    let nuevos=0,rep=0;
+    for(let i=0;i<filas.length;i+=120){
+      m.textContent='Guardando… '+Math.min(i+120,filas.length)+' de '+filas.length;
+      const r=await llamar('asignacionesCargar',{filas:filas.slice(i,i+120)});
+      if(!r.ok){m.textContent='No se pudo guardar. ¿Actualizaste el Apps Script? Intenta de nuevo.';b.disabled=false;return}
+      nuevos+=r.nuevos;rep+=r.repetidos;
+    }
+    m.textContent=`✓ Listo: ${nuevos} asignaciones nuevas${rep?` (${rep} ya estaban)`:''}.`;
+    $('#s13f').value='';lista('Territorios','#lter');
+  }catch(e){m.textContent='No se pudo leer el archivo. Debe ser un formulario S-13 en formato .docx.'}
+  b.disabled=false;
+}
+/* Pestaña Registro S-13 */
+async function reg(){
+  const box=$('#lreg');box.textContent='Cargando…';$('#s13bt').textContent='';
+  let P,R,A;try{[P,R,A]=await Promise.all(['Programa','Territorios','Asignaciones'].map(hoja=>llamar('listar',{hoja})))}catch(e){box.textContent='No se pudo cargar.';return}
+  if(!Array.isArray(P)||!Array.isArray(R))return;
+  if(!Array.isArray(A)){box.textContent='Falta actualizar el Apps Script (hoja de asignaciones). Pega el código nuevo y vuelve a implementar.';return}
+  PRG=P;TER=R.sort((a,b)=>a.numero-b.numero);ASG=A;regDibujar();
+}
+function regDibujar(){
+  const dias=[];
+  for(let z=0;z>=-21;z--){
+    const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));
+    const R=PRG.filter(x=>x.fecha==k&&parseT(x.territorios).length).sort((a,b)=>a.turno.localeCompare(b.turno));
+    if(R.length)dias.push([k,R]);
+  }
+  const zona=n=>{const t=TER.find(x=>String(x.numero)==String(n));return t?lim(t.zona):''};
+  $('#lreg').innerHTML=dias.length?dias.map(([k,R])=>`<div class="dia"><h3>${fechaLarga(k)}</h3>`+R.map(r=>{
+    const cap=esFin(k)?grTxt(r.capitan):String(r.capitan||'').trim();
+    return `<div class="rf"><div class="mu"><b>${hh(r.turno)}</b>${r.punto?' · '+esc(r.punto):''}${cap?' · '+esc(cap):''}</div>`+parseT(r.territorios).map(([n,l])=>{
+      const id='p|'+k+'|'+r.turno+'|'+n,rec=ASG.find(a=>String(a.numero)==String(n)&&a.asignado==k),lock=rec&&rec.id!=id;
+      return `<label class="${lock?'lk':''}"><input type="checkbox" data-k="${k}" data-t="${esc(r.turno)}" data-n="${esc(n)}" data-l="${esc(l)}" data-cap="${esc(cap)}"${rec?' checked':''}${lock?' disabled':''}><span>Territorio ${esc(n)} ${esc(zona(n))}${l?` <small>(manzanas ${esc(l.split('').join(', '))})</small>`:''}${lock?' <small>· ya está en el S-13</small>':''}</span></label>`}).join('')+'</div>'}).join('')+'</div>').join(''):'<p>No hay programas con territorios en los últimos 21 días.</p>';
+  regExp();
+}
+$('#lreg').addEventListener('change',e=>{if(e.target.matches('input[type=checkbox]'))regGuardar(e.target)});
+async function regGuardar(cb){
+  const {k,t,n,l,cap}=cb.dataset,id='p|'+k+'|'+t+'|'+n;
+  cb.disabled=true;
+  try{
+    if(cb.checked){
+      const f={id,numero:n,nombre:cap,asignado:k,completado:l?'':k,nota:l?l.split('').join(', '):''};
+      const r=await llamar('guardar',{hoja:'Asignaciones',fila:f});if(!r.ok)throw 0;
+      ASG=ASG.filter(a=>a.id!=id).concat(f);toast('✓ Anotado en el S-13');
+    }else{
+      const r=await llamar('borrar',{hoja:'Asignaciones',id});if(!r.ok)throw 0;
+      ASG=ASG.filter(a=>a.id!=id);toast('Quitado del S-13');
+    }
+  }catch(e){cb.checked=!cb.checked;toast('No se pudo guardar. Intenta de nuevo.',1)}
+  cb.disabled=false;regExp();
+}
+function s13Hojas(){const c={};ASG.forEach(a=>c[a.numero]=(c[a.numero]||0)+1);return Math.max(1,Math.ceil(Math.max(0,...Object.values(c))/4))}
+function regExp(){
+  const n=s13Hojas();
+  $('#s13bt').innerHTML=Array.from({length:n},(_,i)=>`<button onclick="s13Descargar(${i+1},this)">📄 Descargar S-13${n>1?' · hoja '+(i+1):''}</button>`).join('')+`<span class="mu">${ASG.length} asignaciones registradas</span>`;
+}
+const FMX=k=>{const d=new Date(k+'T12:00');return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')};
+const escXml=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function s13Descargar(hoja,b){
+  b.disabled=true;
+  try{
+    const r=await fetch('s13-plantilla.docx');if(!r.ok)throw 0;
+    const z=zipLeer(new Uint8Array(await r.arrayBuffer())),i=z.findIndex(x=>x.name=='word/document.xml');
+    let xml=new TextDecoder().decode(await inflar(z[i]));
+    const map={Y:String(hoy.getFullYear())},por={};
+    ASG.forEach(a=>(por[parseInt(a.numero)]??=[]).push(a));
+    Object.entries(por).forEach(([n,L])=>{
+      L.sort((a,b)=>(a.asignado+(a.completado||'')).localeCompare(b.asignado+(b.completado||'')));
+      L.slice((hoja-1)*4,hoja*4).forEach((a,j)=>{map['N'+n+'_'+(j+1)]=a.nombre;map['A'+n+'_'+(j+1)]=FMX(a.asignado);map['C'+n+'_'+(j+1)]=a.completado?FMX(a.completado):a.nota});
+      const p=hoja>1&&L[(hoja-1)*4-1];if(p)map['U'+n]=FMX(p.completado||p.asignado);
+    });
+    xml=xml.replace(/\{\{(Y|[UNAC]\d+(?:_\d)?)\}\}/g,(m,k)=>escXml(map[k]));
+    const u=new TextEncoder().encode(xml);
+    z[i]={...z[i],m:0,crc:crc32(u),cs:u.length,us:u.length,raw:u};
+    const a=$d.createElement('a');a.href=URL.createObjectURL(zipEscribir(z));a.download=`S-13 Registro de asignación de territorio ${hoy.getFullYear()}${s13Hojas()>1?' hoja '+hoja:''}.docx`;
+    $d.body.appendChild(a);a.click();a.remove();toast('✓ Formulario S-13 descargado');
+  }catch(e){toast('No se pudo crear el formulario S-13.',1)}
+  b.disabled=false;
+}
 function tema(){const t=$d.documentElement.dataset.t=='dark'?'light':'dark';$d.documentElement.dataset.t=t;try{localStorage.t=t}catch(e){}ico()}
 const ico=()=>{$('#tm').textContent=$d.documentElement.dataset.t=='dark'?'☀️ Claro':'🌙 Oscuro'};
 function peligro(m){return prompt(m+'\n\nEsta acción no se puede deshacer. Escribe BORRAR para confirmar.')==='BORRAR'}
@@ -398,7 +569,7 @@ async function lista(h,sel){
     const sucio=L.filter(x=>lim(x.zona)!=x.zona);
     if(sucio.length){await llamar('territoriosCargar',{filas:sucio.map(x=>({numero:x.numero,zona:lim(x.zona)}))});sucio.forEach(x=>x.zona=lim(x.zona))}
   }
-  if(h=='Territorios'){const P=await llamar('listar',{hoja:'Programa'});if(Array.isArray(P))PRG=P}
+  if(h=='Territorios'){const A=await llamar('listar',{hoja:'Asignaciones'});ASG=Array.isArray(A)?A:null;if(!ASG){const P=await llamar('listar',{hoja:'Programa'});if(Array.isArray(P))PRG=P}}
   LST[h]=L;
   box.innerHTML=(L.length?L.map(f=>`<div class="dia" data-id="${esc(f.id)}">${vista(f,h)}</div>`).join(''):'<p>Aún no hay registros.</p>')+'<h3>Agregar nuevo</h3><div class="dia" data-id="">'+edHtml({},h,true)+'</div>';
 }
@@ -422,6 +593,7 @@ async function prog(){
   if(![P,Q,N,R,I].every(Array.isArray))return;
   const OFR={};I.forEach(x=>(OFR[x.fecha+'|'+x.turno]??=new Set()).add(x.nombre));
   PRG=P;PUN=Q;TER=R.sort((a,b)=>a.numero-b.numero);
+  {const A=await llamar('listar',{hoja:'Asignaciones'}).catch(()=>null);ASG=Array.isArray(A)?A:null}
   const pu=Q.map(x=>x.nombre),na=N.map(x=>x.nombre).sort();let h='';
   const opcPunto=v=>{const man=!!v&&!pu.includes(v);
     return `<select aria-label="Punto de encuentro"><option value="">Punto de encuentro</option>${pu.map(x=>`<option${x==v?' selected':''}>${esc(x)}</option>`).join('')}<option value="__otro"${man?' selected':''}>✏️ Otra dirección…</option></select><input class="po" placeholder="Escribe la dirección" aria-label="Otra dirección de encuentro" value="${man?esc(v):''}"${man?'':' hidden'}>`};
@@ -538,7 +710,10 @@ async function guardarFin(b,d,k){
 let CONF={};
 const solapa=(a,b)=>!a||!b||[...a].some(c=>b.includes(c));
 const FM=k=>{const d=new Date(k+'T12:00');return d.getDate()+'/'+String(d.getMonth()+1).padStart(2,'0')};
-function ultima(n){let b='';const hk=f2(hoy);PRG.forEach(x=>{if(x.fecha<=hk&&x.fecha>b&&parseT(x.territorios).some(([m])=>m==String(n)))b=x.fecha});return b}
+let ASG=null;
+function ultima(n){
+  if(ASG){let b='';ASG.forEach(a=>{if(String(a.numero).trim()==String(n).trim())[a.asignado,a.completado].forEach(d=>{if(d&&d>b)b=d})});return b}
+  let b='';const hk=f2(hoy);PRG.forEach(x=>{if(x.fecha<=hk&&x.fecha>b&&parseT(x.territorios).some(([m])=>m==String(n)))b=x.fecha});return b}
 function hace(k){if(!k)return 'sin registro de trabajo';const dd=Math.round((new Date(f2(hoy)+'T12:00')-new Date(k+'T12:00'))/864e5);return 'Último: '+FM(k)+' ('+(dd==0?'hoy':dd==1?'ayer':'hace '+dd+' días')+')'}
 const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 function leerDlg(){const m={};$d.querySelectorAll('#dtl .tr').forEach(r=>{const c=r.querySelector('[type=checkbox]');if(c.checked)m[c.dataset.n]=r.querySelector('.l').value});return m}
