@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="robots" content="noindex,nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ministerio Congregación Collico</title>
 <meta name="theme-color" content="#14465e">
@@ -354,7 +355,7 @@ function salir(forzado){
 async function entrar(){
   const u=$('#lu').value.trim(),c=$('#lc').value;
   const r=await llamar('login',{u,c}).catch(()=>({error:'red'}));
-  if(!r.ok){$('#msg').textContent=r.error=='red'?'No se pudo conectar con la planilla.':'Usuario o contraseña incorrectos.';return}
+  if(!r.ok){$('#msg').textContent=r.error=='red'?'No se pudo conectar con la planilla.':r.error=='bloqueado'?'Demasiados intentos fallidos. Espera 10 minutos e intenta de nuevo.':'Usuario o contraseña incorrectos.';return}
   U=u;K=c;R=r.rol;guardarSes($('#lr').checked);$('#lc').value='';try{localStorage.ult=u}catch(e){}
   if(r.cambiar){ir('acc');pedirClave();return}
   ir(DEST);
@@ -651,7 +652,7 @@ async function prog(){
     return `<select aria-label="Punto de encuentro"><option value="">Punto de encuentro</option>${pu.map(x=>`<option${x==v?' selected':''}>${esc(x)}</option>`).join('')}<option value="__otro"${man?' selected':''}>✏️ Otra dirección…</option></select><input class="po" placeholder="Escribe la dirección" aria-label="Otra dirección de encuentro" value="${man?esc(v):''}"${man?'':' hidden'}>`};
   const opcCap=(k,t,v)=>{const of=[...(OFR[k+'|'+t]||[])].filter(n=>na.includes(n)).sort(),otros=na.filter(n=>!of.includes(n)),o=x=>`<option${x==v?' selected':''}>${esc(x)}</option>`;
     return `<select aria-label="Capitán"><option value="">Capitán</option>${of.length?`<optgroup label="Se ofrecieron">${of.map(o).join('')}</optgroup>`:''}${otros.length?`<optgroup label="${of.length?'Otros':'Todos'}">${otros.map(o).join('')}</optgroup>`:''}${v&&!na.includes(v)?o(v):''}</select>`};
-  FILA=(k,r)=>`<div class="tn wr" data-k="${k}" data-t="${hh(r.turno||'10:00')}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><select class="ho" aria-label="Horario">${(FIN.includes(hh(r.turno))||!r.turno?FIN:[...FIN,hh(r.turno)]).map(x=>`<option${x==hh(r.turno||'10:00')?' selected':''}>${x}</option>`).join('')}</select>${opcPunto(r.punto)}<div class="gr">${grHtml(r.capitan)}</div><button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button><button class="s x" onclick="quitarFila(this)" aria-label="Quitar horario">✕</button></div>`;
+  FILA=(k,r)=>`<div class="tn wr" data-k="${k}" data-t="${esc(hh(r.turno||'10:00'))}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><select class="ho" aria-label="Horario">${(FIN.includes(hh(r.turno))||!r.turno?FIN:[...FIN,hh(r.turno)]).map(x=>`<option${x==hh(r.turno||'10:00')?' selected':''}>${x}</option>`).join('')}</select>${opcPunto(r.punto)}<div class="gr">${grHtml(r.capitan)}</div><button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button><button class="s x" onclick="quitarFila(this)" aria-label="Quitar horario">✕</button></div>`;
   DIA=z=>{let h='';
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));
     if(esFin(k)){
