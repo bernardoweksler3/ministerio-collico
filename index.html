@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Servicio de predicación</title>
+<title>Ministerio Congregación Collico</title>
 <style>
 :root{--az:#17445c;--az2:#e6eef3;--tx:#1c2429;--bd:#c5d2da}
 *{box-sizing:border-box}
@@ -28,9 +28,18 @@ h1{font-size:26px;margin:12px 0 4px}
 .nav h2{text-transform:capitalize;margin:0}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0}
 .cal b{text-align:center;color:#55666f}
-.cal .d{padding:12px 0;background:#fff;color:var(--az);border:2px solid var(--bd)}
-.cal .d.on{background:var(--az);color:#fff;border-color:var(--az)}
-.cal .d:disabled{opacity:.35;cursor:default}
+.cal .d{padding:12px 0;color:var(--tx);border:3px solid transparent}
+.cal .d.g{background:#dfe3e6}
+.cal .d.a{background:#f6d44d}
+.cal .d.v{background:#2e7d4f;color:#fff}
+.cal .d.p{background:#fff;border:2px dashed var(--bd);color:#9aa8b0}
+.cal .d.on{border-color:#111;font-weight:bold}
+.cal .d:disabled{cursor:not-allowed}
+.ch:disabled{opacity:.45;cursor:not-allowed}
+input:disabled{background:#f1f3f4;color:#6b7a82}
+.ley{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:15px}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:6px;vertical-align:-2px}
+.sw.g{background:#dfe3e6}.sw.a{background:#f6d44d}.sw.v{background:#2e7d4f}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .ch{background:#fff;color:var(--az);border:2px solid var(--bd)}
 .ch.on{background:var(--az);color:#fff;border-color:var(--az)}
@@ -41,7 +50,7 @@ footer a{color:#55666f;cursor:pointer}
 </style>
 </head>
 <body>
-<header>Servicio de predicación</header>
+<header>Ministerio Congregación Collico</header>
 <main>
 <nav class="tabs">
   <button data-v="cap" onclick="ir('cap')">Capitanes de Grupo</button>
@@ -54,15 +63,13 @@ footer a{color:#55666f;cursor:pointer}
   <h1>Capitanes de predicación</h1>
   <h2>Disponibilidad para ser capitán</h2>
   <p>Marca los días en que puedes acompañar la predicación.</p>
-  <label for="nombre">Nombre</label><input id="nombre" autocomplete="name">
+  <label for="nombre">Nombre</label><select id="nombre"></select>
   <label>¿Qué días puedes ser capitán?</label>
   <p>Toca los días en que puedes. Para quitar uno, vuelve a tocarlo.</p>
   <div class="nav"><button class="s" onclick="cmes(-1)">‹</button><h2 id="cmes"></h2><button class="s" onclick="cmes(1)">›</button></div>
   <div id="cal" class="cal"></div>
+  <p class="ley"><span><i class="sw v"></i>Día completo</span><span><i class="sw a"></i>Queda un horario disponible</span><span><i class="sw g"></i>Sin capitán todavía</span></p>
   <p id="resumen"></p>
-  <label>Horarios</label>
-  <p>Se aplican a todos los días que elijas. Abajo puedes cambiar los de un día suelto.</p>
-  <div id="hg" class="chips"></div>
   <div id="hd"></div>
   <label>Modalidad de predicación</label>
   <div id="md" class="chips"></div>
@@ -79,6 +86,7 @@ footer a{color:#55666f;cursor:pointer}
   <div class="nav">
     <button class="s" onclick="mes(-1)">‹</button><h2 id="mes"></h2><button class="s" onclick="mes(1)">›</button>
   </div>
+  <p>Solo se pueden completar los días desde ayer hasta 10 días después de hoy.</p>
   <datalist id="pl"></datalist>
   <div id="dias"></div>
   <p class="noimp"><button onclick="print()">Imprimir o guardar PDF</button></p>
@@ -103,6 +111,10 @@ footer a{color:#55666f;cursor:pointer}
     <label for="nc">Contraseña</label><input id="nc">
     <p><button onclick="uadd()">Agregar usuario</button></p>
     <p>Si escribes un usuario que ya existe, se cambia su contraseña.</p>
+    <h2>Nombres para capitanes</h2>
+    <div class="dia" id="ln"></div>
+    <label for="nn">Nuevo nombre</label><input id="nn">
+    <p><button onclick="nadd()">Agregar nombre</button></p>
   </div>
 </section>
 <footer><a id="pie" onclick="ir('acc')">Acceso</a></footer>
@@ -113,7 +125,7 @@ footer a{color:#55666f;cursor:pointer}
 const URL_SCRIPT='https://script.google.com/macros/s/AKfycbxKG0CiXUpi4Pf8P-xekS8EcF7y40ox37zahZQQ8MVr_cdHOJ4A9b8j-0TmF_4l9qQZ/exec';
 
 const $=s=>$d.querySelector(s),$d=document, T=['10:00','16:00','19:00'], MD=['🚪 Casa en casa','💻 Por Zoom'];
-const CAMPOS={Puntos:[['nombre','Nombre'],['direccion','Dirección'],['nota','Nota']],
+const CAMPOS={Puntos:[['nombre','Nombre'],['direccion','Dirección']],
   Territorios:[['numero','Número'],['zona','Zona o descripción'],['asignado','Asignado a'],['nota','Nota']]};
 let U=sessionStorage.u||'',K=sessionStorage.k||'',R=sessionStorage.r||'',NOTA='',DEST='cap',V='cap';
 let hoy=new Date(), M={y:hoy.getFullYear(),m:hoy.getMonth()};
@@ -128,7 +140,7 @@ function ir(v){
   $d.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
   $d.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
   $('#pie').textContent=U?'Acceso ('+U+')':'Acceso';
-  ({cap:()=>{dib();cap()},pto:()=>lista('Puntos','#lpto'),ter:()=>lista('Territorios','#lter'),prog,acc:vacc})[v]();
+  ({cap:pub,pto:()=>lista('Puntos','#lpto'),ter:()=>lista('Territorios','#lter'),prog,acc:vacc})[v]();
 }
 function salir(forzado){
   U=K=R='';sessionStorage.clear();DEST='cap';
@@ -144,7 +156,7 @@ async function entrar(){
 async function vacc(){
   $('#msg').textContent=NOTA;NOTA='';
   $('#login').hidden=!!U;$('#sesion').hidden=!U;$('#quien').textContent=U?'Sesión iniciada como '+U+'.':'';
-  $('#adm').hidden=R!='admin';
+  $('#adm').hidden=R!='admin';if(R=='admin')nombresAdm();
   if(R=='admin'){const L=await llamar('listar',{hoja:'Usuarios'});
     $('#us').innerHTML=Array.isArray(L)&&L.length?L.map(x=>`<div class="tn"><span>${esc(x.usuario)}</span><button class="s" onclick="ubor('${esc(x.usuario)}')">Borrar</button></div>`).join(''):'<div class="tn">Aún no hay usuarios.</div>';}
 }
@@ -153,6 +165,12 @@ async function uadd(){
   if(!nuevo||!clave)return alert('Escribe usuario y contraseña.');
   await llamar('usuarioNuevo',{nuevo,clave});$('#nu').value=$('#nc').value='';vacc();
 }
+async function nombresAdm(){
+  const L=await llamar('listar',{hoja:'Nombres'});
+  $('#ln').innerHTML=Array.isArray(L)&&L.length?L.map(x=>`<div class="tn"><span>${esc(x.nombre)}</span><button class="s" data-n="${esc(x.nombre)}" onclick="nbor(this.dataset.n)">Borrar</button></div>`).join(''):'<div class="tn">Aún no hay nombres.</div>';
+}
+async function nadd(){const nuevo=$('#nn').value.trim();if(!nuevo)return;await llamar('nombreNuevo',{nuevo});$('#nn').value='';nombresAdm()}
+async function nbor(n){if(confirm('¿Quitar a '+n+' de la lista?')){await llamar('nombreBorrar',{nuevo:n});nombresAdm()}}
 async function ubor(n){if(confirm('¿Borrar a '+n+'?')){await llamar('usuarioBorrar',{nuevo:n});vacc()}}
 
 /* Puntos de encuentro y Territorios */
@@ -179,12 +197,12 @@ async function prog(){
   let P,Q;try{[P,Q]=await Promise.all([llamar('listar',{hoja:'Programa'}),llamar('listar',{hoja:'Puntos'})])}catch(e){box.textContent='No se pudo cargar el programa.';return}
   if(!Array.isArray(P))return;
   $('#pl').innerHTML=(Q||[]).map(x=>`<option value="${esc(x.nombre)}">`).join('');
-  const n=new Date(M.y,M.m+1,0).getDate();let h='';
+  const n=new Date(M.y,M.m+1,0).getDate(),dd=z=>f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z)),MIN=dd(-1),MAX=dd(10);let h='';
   for(let d=1;d<=n;d++){
     const dt=new Date(M.y,M.m,d),k=f2(dt);
     h+=`<div class="dia"><h3>${dt.toLocaleDateString('es-CL',{weekday:'long',day:'numeric'})}</h3>`;
-    for(const t of T){const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
-      h+=`<div class="tn" data-k="${k}" data-t="${t}"><b>${t}</b><input placeholder="Capitán" value="${esc(r.capitan)}"><input list="pl" placeholder="Punto de reunión" value="${esc(r.punto)}"><input placeholder="Nota" value="${esc(r.nota)}"><button onclick="guardar(this)">Guardar</button></div>`}
+    for(const t of T){const ok=k>=MIN&&k<=MAX,dz=ok?'':'disabled',r=P.find(x=>x.fecha==k&&x.turno==t)||{};
+      h+=`<div class="tn" data-k="${k}" data-t="${t}"><b>${t}</b><input ${dz} placeholder="Capitán" value="${esc(r.capitan)}"><input ${dz} list="pl" placeholder="Punto de reunión" value="${esc(r.punto)}"><input ${dz} placeholder="Nota" value="${esc(r.nota)}">${ok?'<button onclick="guardar(this)">Guardar</button>':''}</div>`}
     h+='</div>';
   }
   box.innerHTML=h;
@@ -198,29 +216,34 @@ async function guardar(b){
 }
 
 /* Capitanes de Grupo (público) */
-let C={y:hoy.getFullYear(),m:hoy.getMonth()+1}, G=new Set(['10:00','19:00']), S={}, MS=new Set();
+let C={y:hoy.getFullYear(),m:hoy.getMonth()+1}, S={}, MS=new Set(), NM=[], OC=new Set();
 if(C.m>11){C.m=0;C.y++}
 const tg=(s,v)=>s.has(v)?s.delete(v):s.add(v);
 function cmes(n){C.m+=n;if(C.m>11){C.m=0;C.y++}if(C.m<0){C.m=11;C.y--}dib()}
-function dia(k){S[k]?delete S[k]:S[k]=new Set(G);dib()}
-function hg(t){tg(G,t);for(const k in S)S[k]=new Set(G);dib()}
+function dia(k){S[k]?delete S[k]:S[k]=new Set();dib()}
 function hd(k,t){tg(S[k],t);dib()}
 function md(t){tg(MS,t);dib()}
+function estado(k){const n=T.filter(t=>OC.has(k+'|'+t)).length;return n==0?'g':n==T.length?'v':'a'}
+async function pub(){
+  try{const r=await llamar('publico');NM=r.nombres||[];OC=new Set((r.ocupados||[]).map(x=>x.fecha+'|'+x.turno))}catch(e){}
+  const s=$('#nombre'),v=s.value;
+  s.innerHTML='<option value="">'+(NM.length?'Elige tu nombre':'Aún no hay nombres en la lista')+'</option>'+NM.map(n=>`<option>${esc(n)}</option>`).join('');
+  s.value=v;dib();cap();
+}
 function dib(){
   $('#cmes').textContent=new Date(C.y,C.m,1).toLocaleDateString('es-CL',{month:'long',year:'numeric'});
   const n=new Date(C.y,C.m+1,0).getDate(),ini=(new Date(C.y,C.m,1).getDay()+6)%7,ks=Object.keys(S).sort();
   let h='LMXJVSD'.split('').map(d=>`<b>${d}</b>`).join('')+'<i></i>'.repeat(ini);
-  for(let d=1;d<=n;d++){const k=f2(new Date(C.y,C.m,d));
-    h+=`<button class="d${S[k]?' on':''}" ${k<f2(hoy)?'disabled':''} onclick="dia('${k}')">${d}</button>`}
+  for(let d=1;d<=n;d++){const k=f2(new Date(C.y,C.m,d)),pas=k<f2(hoy),e=estado(k);
+    h+=`<button class="d ${pas?'p':e}${S[k]?' on':''}" ${pas||e=='v'?'disabled':''} onclick="dia('${k}')">${d}${S[k]?'✓':''}</button>`}
   $('#cal').innerHTML=h;
   $('#resumen').textContent=ks.length?`Has elegido ${ks.length} día${ks.length>1?'s':''}.`:'Todavía no has elegido ningún día.';
-  $('#hg').innerHTML=T.map(t=>`<button class="ch${G.has(t)?' on':''}" onclick="hg('${t}')">${t}</button>`).join('');
   $('#md').innerHTML=MD.map(t=>`<button class="ch${MS.has(t)?' on':''}" onclick="md('${t}')">${t}</button>`).join('');
-  $('#hd').innerHTML=ks.map(k=>`<div class="tn"><b style="min-width:110px">${new Date(k+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'})}</b><span class="chips">`+T.map(t=>`<button class="ch${S[k].has(t)?' on':''}" onclick="hd('${k}','${t}')">${t}</button>`).join('')+'</span></div>').join('');
+  $('#hd').innerHTML=ks.length?'<label>Elige los horarios de cada día</label>'+ks.map(k=>`<div class="tn"><b style="min-width:110px">${new Date(k+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'})}</b><span class="chips">`+T.map(t=>{const o=OC.has(k+'|'+t);return `<button class="ch${S[k].has(t)?' on':''}" ${o?'disabled':''} onclick="hd('${k}','${t}')">${t}${o?' (ocupado)':''}</button>`}).join('')+'</span></div>').join(''):'';
 }
 async function enviar(){
   const nombre=$('#nombre').value.trim(),ks=Object.keys(S).sort(),o=$('#ok');
-  if(!nombre)return o.textContent='Escribe tu nombre.';
+  if(!nombre)return o.textContent='Elige tu nombre.';
   if(!ks.length)return o.textContent='Elige al menos un día.';
   if(ks.some(k=>!S[k].size))return o.textContent='Cada día elegido necesita al menos un horario.';
   if(!MS.size)return o.textContent='Elige la modalidad de predicación.';
