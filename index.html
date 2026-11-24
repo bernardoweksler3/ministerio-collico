@@ -155,6 +155,13 @@ footer a{color:var(--mu);cursor:pointer}
 #cu:hover,#pie:hover{text-decoration:underline}
 #pie .ic{flex:none}
 #cap #nombre{margin-bottom:26px}
+#mis{margin-top:26px}
+.mi{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--bd)}
+.mi>div{flex:1 1 auto;min-width:0}
+.bd{font-size:12.5px;border-radius:12px;padding:3px 10px;border:1px solid var(--bd);text-align:center;max-width:130px}
+.bd.ok{background:rgba(46,160,90,.2);border-color:rgba(46,160,90,.6)}
+.bd.pen{background:rgba(240,190,40,.22);border-color:rgba(200,150,0,.6)}
+.bd.otro{opacity:.75}
 #cap .nav{margin-top:6px;margin-bottom:10px}
 #lreg .lk{opacity:.7}
 #lreg details.otro{margin:6px 0 2px}
@@ -206,6 +213,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
   <div id="md" class="chips"></div>
   <p><button id="env" onclick="enviar()">Enviar disponibilidad</button></p>
   <div id="ok"></div>
+  <div id="mis" hidden><h2>Mis turnos ofrecidos</h2><div id="lmis"></div></div>
 </section>
 
 <section id="ofr" hidden>
@@ -918,11 +926,34 @@ function tomado(k,t){
   if(!esFin(k)&&(t=='18:00'||t=='19:00')&&(OC.has(k+'|18:00')||OC.has(k+'|19:00')))return 'no disponible';
   return '';
 }
+let MIS=null;
+const nomGuardado=()=>{try{return localStorage.nom||''}catch(e){return ''}};
 async function pub(){
-  try{const r=await llamar('publico');NM=r.nombres||[];OC=new Map((r.ocupados||[]).map(x=>[x.fecha+'|'+x.turno,x.capitan]))}catch(e){}
-  const s=$('#nombre'),v=s.value;
+  const v0=$('#nombre').value||nomGuardado();
+  try{const r=await llamar('publico',v0?{nombre:v0}:{});NM=r.nombres||[];OC=new Map((r.ocupados||[]).map(x=>[x.fecha+'|'+x.turno,x.capitan]));MIS=Array.isArray(r.mis)?r.mis:null}catch(e){}
+  const s=$('#nombre'),v=s.value||(NM.includes(v0)?v0:'');
   s.innerHTML='<option value="">'+(NM.length?'Elige tu nombre':'Aún no hay nombres en la lista')+'</option>'+NM.map(n=>`<option>${esc(n)}</option>`).join('');
-  s.value=v;dib();
+  s.value=v;dib();misDib();
+}
+$('#nombre').addEventListener('change',()=>{try{localStorage.nom=$('#nombre').value}catch(e){}pub()});
+function misDib(){
+  const w=$('#mis'),n=$('#nombre').value;
+  if(!n||MIS===null){w.hidden=true;return}
+  w.hidden=false;
+  const L=MIS.filter(x=>x.fecha>=f2(hoy)).sort((a,b)=>(a.fecha+a.turno).localeCompare(b.fecha+b.turno));
+  $('#lmis').innerHTML=L.length?L.map(x=>{
+    const c=OC.get(x.fecha+'|'+x.turno),est=c==n?['ok','✓ Confirmado']:c?['otro','Se eligió a otro capitán']:['pen','Pendiente de confirmar'];
+    return `<div class="mi"><div><b>${(d=>DS[d.getDay()]+' '+d.getDate()+'/'+String(d.getMonth()+1).padStart(2,'0'))(new Date(x.fecha+'T12:00'))}</b><br><span class="mu">${esc(x.turno)}${x.modalidad?' · '+esc(x.modalidad):''}</span></div><span class="bd ${est[0]}">${est[1]}</span>${c==n?'':`<button class="s x" data-f="${esc(x.fecha)}" data-t="${esc(x.turno)}" onclick="misQuitar(this)" aria-label="Quitar este ofrecimiento">🗑️</button>`}</div>`}).join(''):'<p class="mu">Todavía no tienes turnos ofrecidos de hoy en adelante.</p>';
+}
+async function misQuitar(b){
+  const n=$('#nombre').value,{f,t}=b.dataset;
+  if(!confirm('¿Quitar tu ofrecimiento del '+fechaLarga(f)+' a las '+t+'?'))return;
+  b.disabled=true;
+  try{const r=await llamar('ofrecimientoBorrar',{nombre:n,fecha:f,turno:t});
+    if(r.ok){toast('✓ Ofrecimiento quitado');await pub();return}
+    toast(r.error=='confirmado'?'Ya estás confirmado en ese horario. Avisa al superintendente para cambiarlo.':'No se pudo quitar. Intenta de nuevo.',1);
+  }catch(e){toast('No se pudo quitar. Revisa tu internet.',1)}
+  b.disabled=false;
 }
 function dib(){
   $('#cmes').textContent=MESES[C.m]+' '+C.y;
@@ -948,7 +979,7 @@ async function enviar(){
     if(r.error)o.textContent=r.error=='ocupado'?'Hay mucha gente enviando. Intenta de nuevo en unos segundos.':'Error: '+r.error;
     else{const n=r.nuevos??filas.length,rp=r.repetidos||0;
       o.textContent='¡Listo! '+(n?'Se '+(n>1?'enviaron '+n+' ofrecimientos':'envió 1 ofrecimiento')+'.':'No se agregó nada nuevo.')+(rp?' Ya tenías '+rp+(rp>1?' enviados antes':' enviado antes')+', no se repitieron.':'');
-      S={};MS.clear();INFO='';$('#nombre').value='';dib();pub()}
+      S={};MS.clear();INFO='';dib();pub()}
   }catch(x){o.textContent='No se pudo enviar. Revisa tu internet e intenta de nuevo.'}
   b.disabled=false;
 }
