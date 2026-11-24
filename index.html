@@ -27,6 +27,11 @@ h1{font-size:26px;margin:12px 0 4px}
 .tn small{flex:1 1 100%;color:#55666f;font-size:14px}
 .nav{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .nav h2{margin:0}
+.br{display:flex;align-items:center;gap:10px;margin:8px 0}
+.bn{flex:0 0 38%;min-width:110px}
+.bb{flex:1;background:var(--az2);border-radius:6px;height:22px;overflow:hidden}
+.bb i{display:block;height:100%;background:var(--az)}
+.br b{min-width:28px;text-align:right}
 .fd{border:1px solid var(--bd);border-radius:8px;margin:12px 0;overflow:hidden}
 .fd h3{margin:0;padding:8px 12px;font-size:18px;background:var(--az);color:#fff}
 .fd.c0{background:#eaf1f5}.fd.c1{background:#f7efd9}.fd.c1 h3{background:#6b4e12}
@@ -62,6 +67,7 @@ footer a{color:#55666f;cursor:pointer}
   <button data-v="pto" onclick="ir('pto')">Puntos de encuentro</button>
   <button data-v="ter" onclick="ir('ter')">Territorios</button>
   <button data-v="prog" onclick="ir('prog')">Programa</button>
+  <button data-v="est" id="tabest" onclick="ir('est')" hidden>Estadísticas</button>
 </nav>
 
 <section id="cap">
@@ -89,6 +95,12 @@ footer a{color:#55666f;cursor:pointer}
   <datalist id="pl"></datalist>
   <div id="dias"></div>
   <p class="noimp"><button onclick="print()">Imprimir o guardar PDF</button></p>
+</section>
+
+<section id="est" hidden>
+  <h1>Estadísticas</h1>
+  <p>Veces que cada persona fue capitán, contando los turnos asignados en el Programa hasta hoy.</p>
+  <div id="graf"></div>
 </section>
 
 <section id="acc" hidden>
@@ -139,11 +151,13 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 
 function ir(v){
   if(!U&&v!='cap'&&v!='acc'){DEST=v;NOTA='Esta sección requiere acceso. Ingresa con tu usuario y contraseña.';v='acc'}
+  if(v=='est'&&R!='admin')v='cap';
   V=v;
+  $('#tabest').hidden=R!='admin';
   $d.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
   $d.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
   $('#pie').textContent=U?'Acceso ('+U+')':'Acceso';
-  ({cap:pub,pto:()=>lista('Puntos','#lpto'),ter:()=>lista('Territorios','#lter'),prog,acc:vacc})[v]();
+  ({cap:pub,pto:()=>lista('Puntos','#lpto'),ter:()=>lista('Territorios','#lter'),prog,acc:vacc,est})[v]();
 }
 function salir(forzado){
   U=K=R='';sessionStorage.clear();DEST='cap';
@@ -224,7 +238,16 @@ function cmes(n){C.m+=n;if(C.m>11){C.m=0;C.y++}if(C.m<0){C.m=11;C.y--}dib()}
 function dia(k){S[k]?delete S[k]:S[k]=new Set();dib()}
 function hd(k,t){tg(S[k],t);dib()}
 function md(t){tg(MS,t);dib()}
-function estado(k){const L=turnos(k),n=L.filter(t=>OC.has(k+'|'+t)).length;return n==0?'g':n==L.length?'v':'a'}
+function estado(k){
+  if(turnos(k)===FIN){const n=FIN.filter(t=>OC.has(k+'|'+t)).length;return n==0?'g':n==3?'v':'a'}
+  const n=(OC.has(k+'|10:00')?1:0)+(OC.has(k+'|18:00')||OC.has(k+'|19:00')?1:0);
+  return n==0?'g':n==2?'v':'a';
+}
+function tomado(k,t){
+  if(OC.has(k+'|'+t))return 'Capitán: '+OC.get(k+'|'+t);
+  if(turnos(k)===SEM&&(t=='18:00'||t=='19:00')&&(OC.has(k+'|18:00')||OC.has(k+'|19:00')))return 'no disponible';
+  return '';
+}
 async function pub(){
   try{const r=await llamar('publico');NM=r.nombres||[];OC=new Map((r.ocupados||[]).map(x=>[x.fecha+'|'+x.turno,x.capitan]))}catch(e){}
   const s=$('#nombre'),v=s.value;
@@ -240,7 +263,7 @@ function dib(){
   $('#cal').innerHTML=h;
   $('#resumen').textContent=ks.length?`Has elegido ${ks.length} día${ks.length>1?'s':''}.`:'Todavía no has elegido ningún día.';
   $('#md').innerHTML=MD.map(t=>`<button class="ch${MS.has(t)?' on':''}" onclick="md('${t}')">${t}</button>`).join('');
-  $('#hd').innerHTML=ks.length?'<label>Elige los horarios de cada día</label>'+ks.map(k=>`<div class="tn"><b style="min-width:110px">${new Date(k+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'})}</b><span class="chips">`+turnos(k).map(t=>{const o=OC.has(k+'|'+t);return `<button class="ch${S[k].has(t)?' on':''}" ${o?'disabled':''} onclick="hd('${k}','${t}')">${t}${o?' (Capitán: '+esc(OC.get(k+'|'+t))+')':''}</button>`}).join('')+'</span>'+(turnos(k)===FIN?'<small>Horario según superintendente de grupo</small>':'')+'</div>').join(''):'';
+  $('#hd').innerHTML=ks.length?'<label>Elige los horarios de cada día</label>'+ks.map(k=>`<div class="tn"><b style="min-width:110px">${new Date(k+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'})}</b><span class="chips">`+turnos(k).map(t=>{const o=tomado(k,t);return `<button class="ch${S[k].has(t)?' on':''}" ${o?'disabled':''} onclick="hd('${k}','${t}')">${t}${o?' ('+esc(o)+')':''}</button>`}).join('')+'</span>'+(turnos(k)===FIN?'<small>Horario según superintendente de grupo</small>':'')+'</div>').join(''):'';
 }
 async function enviar(){
   const nombre=$('#nombre').value.trim(),ks=Object.keys(S).sort(),o=$('#ok');
@@ -261,14 +284,30 @@ async function cap(){
   try{
     const [I,P]=await Promise.all([llamar('listar',{hoja:'Inscripciones'}),llamar('listar',{hoja:'Programa'})]);
     if(!Array.isArray(I))return;
-    const g={};I.forEach(x=>((g[x.fecha]??={})[x.turno]??=[]).push(x));
+    const cd=(f,t)=>((P.find(x=>x.fecha==f&&x.turno==t)||{}).capitan||'').trim();
+    const g={};I.filter(x=>x.fecha>=f2(hoy)).forEach(x=>((g[x.fecha]??={})[x.turno]??=[]).push(x));
     const fs=Object.keys(g).sort();
     a.innerHTML='<h2>Inscritos</h2>'+(fs.map((f,i)=>`<div class="fd c${i%2}"><h3>${fechaLarga(f)}</h3>`+Object.keys(g[f]).sort().map(t=>{
-      const cp=((P.find(x=>x.fecha==f&&x.turno==t)||{}).capitan||'').trim();
-      return `<div class="tn"><b>${t}</b><span>${cp?'Capitán: '+esc(cp):'Sin capitán'}</span>${cp?`<button class="s" data-f="${f}" data-t="${t}" onclick="elegir(this,1)">Cancelar elección</button>`:''}</div>`+
-        g[f][t].map(x=>`<div class="tn of"><span>${esc(x.nombre)}</span><span>${esc(x.modalidad)}</span>`+(cp?(cp==x.nombre?'<span>✓ Elegido</span>':''):`<button data-f="${f}" data-t="${t}" data-n="${esc(x.nombre)}" onclick="elegir(this)">Elegir capitán</button>`)+'</div>').join('');
-    }).join('')+'</div>').join('')||'<p>Aún no hay inscritos.</p>');
+      const cp=cd(f,t),o=t=='18:00'?'19:00':t=='19:00'?'18:00':'',cub=!cp&&o&&turnos(f)===SEM&&cd(f,o);
+      return `<div class="tn"><b>${t}</b><span>${cp?'Capitán: '+esc(cp):cub?'Ya hay capitán en el otro horario de la tarde':'Sin capitán'}</span>${cp?`<button class="s" data-f="${f}" data-t="${t}" onclick="elegir(this,1)">Cancelar elección</button>`:''}</div>`+
+        g[f][t].map(x=>{const d=`data-f="${f}" data-t="${t}" data-n="${esc(x.nombre)}"`;
+          return `<div class="tn of"><span>${esc(x.nombre)}</span><span>${esc(x.modalidad)}</span>`+(cp==x.nombre?'<span>✓ Elegido</span>':(cp||cub?'':`<button ${d} onclick="elegir(this)">Elegir capitán</button>`)+`<button class="s" ${d} aria-label="Eliminar ofrecimiento" title="Eliminar ofrecimiento" onclick="quitar(this)">🗑</button>`)+'</div>'}).join('');
+    }).join('')+'</div>').join('')||'<p>No hay ofrecimientos desde hoy en adelante.</p>');
   }catch(e){a.textContent='No se pudo cargar la lista.'}
+}
+async function quitar(b){
+  if(!confirm('¿Eliminar el ofrecimiento de '+b.dataset.n+'?'))return;
+  b.disabled=true;
+  await llamar('inscripcionBorrar',{fecha:b.dataset.f,turno:b.dataset.t,nombre:b.dataset.n});cap();
+}
+async function est(){
+  const box=$('#graf');box.textContent='Cargando…';
+  let P,N;try{[P,N]=await Promise.all([llamar('listar',{hoja:'Programa'}),llamar('listar',{hoja:'Nombres'})])}catch(e){box.textContent='No se pudo cargar.';return}
+  if(!Array.isArray(P)||!Array.isArray(N))return;
+  const c={},hk=f2(hoy);N.forEach(x=>c[x.nombre]=0);
+  P.forEach(x=>{const n=N.find(y=>y.nombre.trim().toLowerCase()==x.capitan.trim().toLowerCase());if(n&&x.fecha<=hk)c[n.nombre]++});
+  const L=Object.entries(c).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])),mx=Math.max(1,...L.map(x=>x[1]));
+  box.innerHTML=L.length?L.map(([n,v])=>`<div class="br"><span class="bn">${esc(n)}</span><span class="bb"><i style="width:${v/mx*100}%"></i></span><b>${v}</b></div>`).join(''):'<p>Aún no hay nombres en la lista.</p>';
 }
 async function elegir(b,cancelar){
   b.disabled=true;
