@@ -20,13 +20,17 @@ label{display:block;margin:12px 0 4px;font-weight:bold}
 input,select{font:inherit;width:100%;padding:10px;border:2px solid var(--bd);border-radius:8px}
 h1{font-size:26px;margin:12px 0 4px}
 .dia{border:1px solid var(--bd);border-radius:8px;margin:12px 0;overflow:hidden}
-.dia h3{margin:0;padding:8px 12px;background:var(--az2);text-transform:capitalize;font-size:18px}
+.dia h3{margin:0;padding:8px 12px;background:var(--az2);font-size:18px}
 .tn{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 12px;border-top:1px solid var(--bd)}
 .tn:first-child{border-top:0}
 .tn b{min-width:58px}.tn span{flex:1 1 120px}.tn input{flex:1 1 140px;width:auto;padding:6px}
 .tn small{flex:1 1 100%;color:#55666f;font-size:14px}
 .nav{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.nav h2{text-transform:capitalize;margin:0}
+.nav h2{margin:0}
+.fd{border:1px solid var(--bd);border-radius:8px;margin:12px 0;overflow:hidden}
+.fd h3{margin:0;padding:8px 12px;font-size:18px;background:var(--az);color:#fff}
+.fd.c0{background:#eaf1f5}.fd.c1{background:#f7efd9}.fd.c1 h3{background:#6b4e12}
+.fd .tn.of{padding-left:28px}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0}
 .cal b{text-align:center;color:#55666f}
 .cal .d{padding:12px 0;color:var(--tx);border:3px solid transparent}
@@ -82,10 +86,6 @@ footer a{color:#55666f;cursor:pointer}
 
 <section id="prog" hidden>
   <h1>Programa</h1>
-  <div class="nav">
-    <button class="s" onclick="mes(-1)">‹</button><h2 id="mes"></h2><button class="s" onclick="mes(1)">›</button>
-  </div>
-  <p>Solo se pueden completar los días desde ayer hasta 10 días después de hoy.</p>
   <datalist id="pl"></datalist>
   <div id="dias"></div>
   <p class="noimp"><button onclick="print()">Imprimir o guardar PDF</button></p>
@@ -193,19 +193,17 @@ async function gfila(b,h){
 async function bfila(b,h){if(confirm('¿Borrar este registro?')){await llamar('borrar',{hoja:h,id:b.closest('[data-id]').dataset.id});ir(V)}}
 
 /* Programa */
-function mes(n){M.m+=n;if(M.m>11){M.m=0;M.y++}if(M.m<0){M.m=11;M.y--}prog()}
 async function prog(){
   const box=$('#dias');box.textContent='Cargando…';
-  $('#mes').textContent=new Date(M.y,M.m,1).toLocaleDateString('es-CL',{month:'long',year:'numeric'});
   let P,Q;try{[P,Q]=await Promise.all([llamar('listar',{hoja:'Programa'}),llamar('listar',{hoja:'Puntos'})])}catch(e){box.textContent='No se pudo cargar el programa.';return}
   if(!Array.isArray(P))return;
   $('#pl').innerHTML=(Q||[]).map(x=>`<option value="${esc(x.nombre)}">`).join('');
-  const n=new Date(M.y,M.m+1,0).getDate(),dd=z=>f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z)),MIN=dd(-1),MAX=dd(10);let h='';
-  for(let d=1;d<=n;d++){
-    const dt=new Date(M.y,M.m,d),k=f2(dt);
-    h+=`<div class="dia"><h3>${dt.toLocaleDateString('es-CL',{weekday:'long',day:'numeric'})}</h3>`;
-    for(const t of turnos(k)){const ok=k>=MIN&&k<=MAX,dz=ok?'':'disabled',r=P.find(x=>x.fecha==k&&x.turno==t)||{};
-      h+=`<div class="tn" data-k="${k}" data-t="${t}"><b>${t}</b><input ${dz} placeholder="Capitán" value="${esc(r.capitan)}"><input ${dz} list="pl" placeholder="Punto de reunión" value="${esc(r.punto)}"><input ${dz} placeholder="Nota" value="${esc(r.nota)}">${ok?'<button onclick="guardar(this)">Guardar</button>':''}</div>`}
+  let h='';
+  for(let z=-1;z<=10;z++){
+    const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));
+    h+=`<div class="dia"><h3>${fechaLarga(k)}</h3>`;
+    for(const t of turnos(k)){const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
+      h+=`<div class="tn" data-k="${k}" data-t="${t}"><b>${t}</b><input placeholder="Capitán" value="${esc(r.capitan)}"><input list="pl" placeholder="Punto de reunión" value="${esc(r.punto)}"><input placeholder="Nota" value="${esc(r.nota)}"><button onclick="guardar(this)">Guardar</button></div>`}
     h+='</div>';
   }
   box.innerHTML=h;
@@ -219,7 +217,7 @@ async function guardar(b){
 }
 
 /* Capitanes de Grupo (público) */
-let C={y:hoy.getFullYear(),m:hoy.getMonth()+1}, S={}, MS=new Set(), NM=[], OC=new Set();
+let C={y:hoy.getFullYear(),m:hoy.getMonth()+1}, S={}, MS=new Set(), NM=[], OC=new Map();
 if(C.m>11){C.m=0;C.y++}
 const tg=(s,v)=>s.has(v)?s.delete(v):s.add(v);
 function cmes(n){C.m+=n;if(C.m>11){C.m=0;C.y++}if(C.m<0){C.m=11;C.y--}dib()}
@@ -228,13 +226,13 @@ function hd(k,t){tg(S[k],t);dib()}
 function md(t){tg(MS,t);dib()}
 function estado(k){const L=turnos(k),n=L.filter(t=>OC.has(k+'|'+t)).length;return n==0?'g':n==L.length?'v':'a'}
 async function pub(){
-  try{const r=await llamar('publico');NM=r.nombres||[];OC=new Set((r.ocupados||[]).map(x=>x.fecha+'|'+x.turno))}catch(e){}
+  try{const r=await llamar('publico');NM=r.nombres||[];OC=new Map((r.ocupados||[]).map(x=>[x.fecha+'|'+x.turno,x.capitan]))}catch(e){}
   const s=$('#nombre'),v=s.value;
   s.innerHTML='<option value="">'+(NM.length?'Elige tu nombre':'Aún no hay nombres en la lista')+'</option>'+NM.map(n=>`<option>${esc(n)}</option>`).join('');
   s.value=v;dib();cap();
 }
 function dib(){
-  $('#cmes').textContent=new Date(C.y,C.m,1).toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+  $('#cmes').textContent=MESES[C.m]+' '+C.y;
   const n=new Date(C.y,C.m+1,0).getDate(),ini=(new Date(C.y,C.m,1).getDay()+6)%7,ks=Object.keys(S).sort();
   let h='LMXJVSD'.split('').map(d=>`<b>${d}</b>`).join('')+'<i></i>'.repeat(ini);
   for(let d=1;d<=n;d++){const k=f2(new Date(C.y,C.m,d)),pas=k<f2(hoy),e=estado(k);
@@ -242,7 +240,7 @@ function dib(){
   $('#cal').innerHTML=h;
   $('#resumen').textContent=ks.length?`Has elegido ${ks.length} día${ks.length>1?'s':''}.`:'Todavía no has elegido ningún día.';
   $('#md').innerHTML=MD.map(t=>`<button class="ch${MS.has(t)?' on':''}" onclick="md('${t}')">${t}</button>`).join('');
-  $('#hd').innerHTML=ks.length?'<label>Elige los horarios de cada día</label>'+ks.map(k=>`<div class="tn"><b style="min-width:110px">${new Date(k+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'})}</b><span class="chips">`+turnos(k).map(t=>{const o=OC.has(k+'|'+t);return `<button class="ch${S[k].has(t)?' on':''}" ${o?'disabled':''} onclick="hd('${k}','${t}')">${t}${o?' (ocupado)':''}</button>`}).join('')+'</span>'+(turnos(k)===FIN?'<small>Horario según superintendente de grupo</small>':'')+'</div>').join(''):'';
+  $('#hd').innerHTML=ks.length?'<label>Elige los horarios de cada día</label>'+ks.map(k=>`<div class="tn"><b style="min-width:110px">${new Date(k+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'})}</b><span class="chips">`+turnos(k).map(t=>{const o=OC.has(k+'|'+t);return `<button class="ch${S[k].has(t)?' on':''}" ${o?'disabled':''} onclick="hd('${k}','${t}')">${t}${o?' (Capitán: '+esc(OC.get(k+'|'+t))+')':''}</button>`}).join('')+'</span>'+(turnos(k)===FIN?'<small>Horario según superintendente de grupo</small>':'')+'</div>').join(''):'';
 }
 async function enviar(){
   const nombre=$('#nombre').value.trim(),ks=Object.keys(S).sort(),o=$('#ok');
@@ -263,20 +261,20 @@ async function cap(){
   try{
     const [I,P]=await Promise.all([llamar('listar',{hoja:'Inscripciones'}),llamar('listar',{hoja:'Programa'})]);
     if(!Array.isArray(I))return;
-    const g={};I.forEach(x=>(g[x.fecha+'|'+x.turno]??=[]).push(x));
-    const ks=Object.keys(g).sort();
-    a.innerHTML='<h2>Inscritos</h2>'+(ks.map(k=>{
-      const [f,t]=k.split('|'),r=P.find(x=>x.fecha==f&&x.turno==t)||{};
-      return `<div class="dia"><h3>${fechaLarga(f)} a las ${t}. Capitán: ${esc(r.capitan)||'sin elegir'}</h3>`+
-        g[k].map(x=>`<div class="tn"><span>${esc(x.nombre)}</span><span>${esc(x.modalidad)}</span><button data-f="${f}" data-t="${t}" data-n="${esc(x.nombre)}" onclick="elegir(this)">Elegir capitán</button></div>`).join('')+'</div>';
-    }).join('')||'<p>Aún no hay inscritos.</p>');
+    const g={};I.forEach(x=>((g[x.fecha]??={})[x.turno]??=[]).push(x));
+    const fs=Object.keys(g).sort();
+    a.innerHTML='<h2>Inscritos</h2>'+(fs.map((f,i)=>`<div class="fd c${i%2}"><h3>${fechaLarga(f)}</h3>`+Object.keys(g[f]).sort().map(t=>{
+      const cp=((P.find(x=>x.fecha==f&&x.turno==t)||{}).capitan||'').trim();
+      return `<div class="tn"><b>${t}</b><span>${cp?'Capitán: '+esc(cp):'Sin capitán'}</span>${cp?`<button class="s" data-f="${f}" data-t="${t}" onclick="elegir(this,1)">Cancelar elección</button>`:''}</div>`+
+        g[f][t].map(x=>`<div class="tn of"><span>${esc(x.nombre)}</span><span>${esc(x.modalidad)}</span>`+(cp?(cp==x.nombre?'<span>✓ Elegido</span>':''):`<button data-f="${f}" data-t="${t}" data-n="${esc(x.nombre)}" onclick="elegir(this)">Elegir capitán</button>`)+'</div>').join('');
+    }).join('')+'</div>').join('')||'<p>Aún no hay inscritos.</p>');
   }catch(e){a.textContent='No se pudo cargar la lista.'}
 }
-async function elegir(b){
+async function elegir(b,cancelar){
   b.disabled=true;
   try{
-    const r=(await llamar('listar',{hoja:'Programa'})).find(x=>x.fecha==b.dataset.f&&x.turno==b.dataset.t)||{};
-    await llamar('guardar',{hoja:'Programa',fila:{fecha:b.dataset.f,turno:b.dataset.t,capitan:b.dataset.n,punto:r.punto||'',nota:r.nota||''}});
+    const P=await llamar('listar',{hoja:'Programa'}),r=P.find(x=>x.fecha==b.dataset.f&&x.turno==b.dataset.t)||{};
+    await llamar('guardar',{hoja:'Programa',fila:{fecha:b.dataset.f,turno:b.dataset.t,capitan:cancelar?'':b.dataset.n,punto:r.punto||'',nota:r.nota||''}});
     cap();
   }catch(e){b.disabled=false;alert('No se pudo guardar.')}
 }
