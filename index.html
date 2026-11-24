@@ -407,6 +407,7 @@ async function prog(){
     h+='<div class="tn gd"><button onclick="guardarDia(this)">Guardar día</button></div></div>';
     return h};
   ZMIN=Math.min(ZMIN,1);ZMAX=Math.max(ZMAX,1);
+  for(let z=-1;z<=10;z++){const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));if(P.some(x=>x.fecha==k&&(x.capitan||x.punto||x.territorios))){ZMIN=Math.min(ZMIN,z);ZMAX=Math.max(ZMAX,z)}}
   for(let z=ZMIN;z<=ZMAX;z++)h+=DIA(z);
   box.innerHTML=h;marcar();tarde();zbot();
 }
@@ -426,7 +427,7 @@ function masDia(s){
   marcar();tarde();zbot();
 }
 const comp=(k,t)=>{const r=PRG.find(x=>x.fecha==k&&x.turno==t);return !!(r&&r.punto&&r.capitan&&r.territorios)};
-const listo=k=>!esFin(k)&&comp(k,'10:00')&&(turnos(k)===JUE||comp(k,'18:00')||comp(k,'19:00'));
+const listo=k=>esFin(k)?PRG.some(x=>x.fecha==k&&x.punto&&x.capitan):comp(k,'10:00')&&(turnos(k)===JUE||comp(k,'18:00')||comp(k,'19:00'));
 function marcar(){
   $d.querySelectorAll('#dias .dia').forEach(d=>{d.classList.toggle('ok',listo(d.dataset.k));if(!esFin(d.dataset.k))d.querySelectorAll('.tn[data-t]').forEach(r=>r.classList.toggle('ok',comp(r.dataset.k,r.dataset.t)))});
 }
@@ -478,7 +479,7 @@ async function guardarFin(b,d,k){
   if(!env.length)return toast('No hay nada que guardar en este día.');
   b.disabled=true;
   try{const r=await llamar('guardarLote',{hoja:'Programa',filas:env});
-    if(r.ok){PRG=PRG.filter(x=>x.fecha!=k).concat(filas);d.classList.remove('sucio');b.textContent='Guardar día';toast('✓ Día guardado')}
+    if(r.ok){PRG=PRG.filter(x=>x.fecha!=k).concat(filas);d.classList.remove('sucio');b.textContent='Guardar día';marcar();toast('✓ Día guardado')}
     else if(r.error!='ocupado')toast('No se pudo guardar. Intenta de nuevo.',1);
   }catch(x){toast('No se pudo guardar. Revisa tu internet.',1)}
   b.disabled=false;
@@ -565,16 +566,17 @@ function imagen(){
     im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
   });
 }
+const MSG_WA='Queridos hermanos,\nCompartimos con ustedes el programa de predicación para la semana. Un abrazo.';
 async function compartir(btn){
   btn.disabled=true;
   try{
     const blob=await imagen(),f=new File([blob],'programa-predicacion.png',{type:'image/png'});
     if(navigator.canShare&&navigator.canShare({files:[f]})){
-      try{await navigator.share({files:[f],title:'Programa de predicación'});btn.disabled=false;return}catch(e){if(e.name=='AbortError'){btn.disabled=false;return}}
+      try{await navigator.share({files:[f],title:'Programa de predicación',text:MSG_WA});btn.disabled=false;return}catch(e){if(e.name=='AbortError'){btn.disabled=false;return}}
     }
     const a=$d.createElement('a');a.href=URL.createObjectURL(blob);a.download='programa-predicacion.png';$d.body.appendChild(a);a.click();a.remove();
     toast('Imagen guardada. Adjúntala en WhatsApp.');
-    window.open('https://wa.me/?text='+encodeURIComponent('Programa de predicación · Congregación Collico'),'_blank');
+    window.open('https://wa.me/?text='+encodeURIComponent(MSG_WA),'_blank');
   }catch(e){toast('No se pudo crear la imagen.',1)}
   btn.disabled=false;
 }
