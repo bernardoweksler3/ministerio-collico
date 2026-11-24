@@ -216,7 +216,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
   <h1>Acceso</h1>
   <p id="msg"></p>
   <div id="login">
-    <label for="lu">Usuario</label><input id="lu" autocomplete="username">
+    <label for="lu">Usuario</label><div id="luw"><input id="lu" autocomplete="username"></div>
     <label for="lc">Contraseña</label><input id="lc" type="password" autocomplete="current-password">
     <label class="rec"><input type="checkbox" id="lr" checked> Mantener la sesión iniciada (14 días)</label>
     <p class="mu">No lo marques si usas un equipo que no es tuyo.</p>
@@ -227,7 +227,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
     <p><button class="s" onclick="salir()">Cerrar sesión</button></p>
     <div id="cpw" hidden>
       <h2>Cambiar mi contraseña</h2>
-      <label for="p1">Nueva contraseña</label><input id="p1" type="password" autocomplete="new-password">
+      <label for="p1">Nueva contraseña (mínimo 6 caracteres)</label><input id="p1" type="password" autocomplete="new-password">
       <label for="p2">Repite la nueva contraseña</label><input id="p2" type="password" autocomplete="new-password">
       <p><button onclick="cpw()">Guardar contraseña</button></p>
     </div>
@@ -236,9 +236,8 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
     <h2>Usuarios</h2>
     <div class="dia" id="us"></div>
     <label for="nu">Nuevo usuario</label><input id="nu" autocapitalize="off">
-    <label for="nc">Contraseña</label><input id="nc">
     <p><button onclick="uadd()">Agregar usuario</button></p>
-    <p>Si escribes un usuario que ya existe, se cambia su contraseña.</p>
+    <p class="mu">Los usuarios nuevos entran con la contraseña provisoria <b>12345678</b> y el sistema les pide cambiarla de inmediato. Si escribes un usuario que ya existe, su contraseña vuelve a la provisoria.</p>
     <h2>Nombres para capitanes</h2>
     <div class="dia" id="ln"></div>
     <label for="nn">Nuevo nombre</label><input id="nn">
@@ -251,6 +250,14 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
   <div class="tn"><input id="dts" placeholder="Buscar por número o nombre" aria-label="Buscar territorio" oninput="filtrarT()"><select id="dto" aria-label="Orden" onchange="rendT(leerDlg())"><option value="n">Ordenar por número</option><option value="a">Más tiempo sin trabajar primero</option></select></div>
   <div id="dtl"></div>
   <p><button onclick="dtok()">Aceptar</button> <button class="s" onclick="$('#dt').close()">Cancelar</button></p>
+</dialog>
+<dialog id="dcl">
+  <h2>Cambia tu contraseña</h2>
+  <p>Entraste con la contraseña provisoria. Por seguridad, crea ahora una contraseña propia para poder continuar.</p>
+  <label for="q1">Nueva contraseña (mínimo 6 caracteres)</label><input id="q1" type="password" autocomplete="new-password">
+  <label for="q2">Repite la nueva contraseña</label><input id="q2" type="password" autocomplete="new-password">
+  <p id="qm" class="mu"></p>
+  <p><button onclick="cpf(this)">Guardar y continuar</button> <button class="s" onclick="$('#dcl').close();salir()">Cerrar sesión</button></p>
 </dialog>
 <dialog id="dv" class="dv">
   <div id="pdfw"><div id="pdf"></div></div>
@@ -282,7 +289,7 @@ const LECT=['listar','publico','login'];
 const llamar=(a,d={})=>{
   PEND++;carga(LECT.includes(a)?'Cargando…':'Guardando…');
   return fetch(URL_SCRIPT,{method:'POST',body:JSON.stringify({a,u:U,c:K,...d})}).then(r=>r.json())
-    .then(r=>{if(r.error=='acceso'&&a!='login')salir(true);if(r.error=='ocupado')toast('Hay mucha gente guardando. Intenta de nuevo en unos segundos.',1);return r})
+    .then(r=>{if(r.error=='acceso'&&a!='login')salir(true);if(r.error=='cambiar'&&a!='clavePropia')pedirClave();if(r.error=='ocupado')toast('Hay mucha gente guardando. Intenta de nuevo en unos segundos.',1);return r})
     .finally(()=>{if(--PEND<=0){PEND=0;carga('')}});
 };
 const FZ=[.9,1,1.15,1.3,1.5];
@@ -312,20 +319,45 @@ async function entrar(){
   const u=$('#lu').value.trim(),c=$('#lc').value;
   const r=await llamar('login',{u,c}).catch(()=>({error:'red'}));
   if(!r.ok){$('#msg').textContent=r.error=='red'?'No se pudo conectar con la planilla.':'Usuario o contraseña incorrectos.';return}
-  U=u;K=c;R=r.rol;guardarSes($('#lr').checked);$('#lc').value='';ir(DEST);
+  U=u;K=c;R=r.rol;guardarSes($('#lr').checked);$('#lc').value='';try{localStorage.ult=u}catch(e){}
+  if(r.cambiar){ir('acc');pedirClave();return}
+  ir(DEST);
+}
+function pedirClave(){const d=$('#dcl');if(d.open)return;$('#q1').value=$('#q2').value=$('#qm').textContent='';d.showModal()}
+$('#dcl').addEventListener('cancel',e=>e.preventDefault());
+async function cpf(b){
+  const a=$('#q1').value,m=$('#qm');
+  if(a.length<6)return m.textContent='La contraseña debe tener al menos 6 caracteres.';
+  if(a=='12345678')return m.textContent='Elige una contraseña distinta de la provisoria.';
+  if(a!=$('#q2').value)return m.textContent='Las contraseñas no coinciden.';
+  b.disabled=true;
+  const r=await llamar('clavePropia',{nueva:a}).catch(()=>({error:'red'}));
+  b.disabled=false;
+  if(r.ok){K=a;guardarSes(!!localStorage.ses);$('#dcl').close();toast('✓ Contraseña actualizada');ir(DEST)}
+  else m.textContent='No se pudo cambiar la contraseña. Intenta de nuevo.';
+}
+async function listaUsuarios(){
+  const w=$('#luw');if(!w||U)return;
+  const r=await llamar('publico').catch(()=>null);
+  if(!r||!Array.isArray(r.usuarios)||!r.usuarios.length)return;
+  const ult=(()=>{try{return localStorage.ult||''}catch(e){return ''}})(),v=$('#lu').value;
+  w.innerHTML=`<select id="lu" autocomplete="username"><option value="">Elige tu usuario</option>${r.usuarios.map(x=>`<option${x==(v||ult)?' selected':''}>${esc(x)}</option>`).join('')}</select>`;
 }
 async function vacc(){
   $('#msg').textContent=NOTA;NOTA='';
+  if(!U)listaUsuarios();
   $('#login').hidden=!!U;$('#sesion').hidden=!U;$('#quien').textContent=U?'Sesión iniciada como '+U+'.':'';
   $('#adm').hidden=R!='admin';if(R=='admin')nombresAdm();$('#cpw').hidden=!U||R=='admin';
   if(R=='admin'){const L=await llamar('listar',{hoja:'Usuarios'});
-    $('#us').innerHTML=Array.isArray(L)&&L.length?L.map(x=>`<div class="tn"><span>${esc(x.usuario)}</span><button class="s" onclick="ubor('${esc(x.usuario)}')">Borrar</button></div>`).join(''):'<div class="tn">Aún no hay usuarios.</div>';}
+    $('#us').innerHTML=Array.isArray(L)&&L.length?L.map(x=>`<div class="tn"><span>${esc(x.usuario)}</span><button class="s" data-n="${esc(x.usuario)}" onclick="urst(this.dataset.n)">Restablecer clave</button><button class="s" onclick="ubor('${esc(x.usuario)}')">Borrar</button></div>`).join(''):'<div class="tn">Aún no hay usuarios.</div>';}
 }
 async function uadd(){
-  const nuevo=$('#nu').value.trim(),clave=$('#nc').value;
-  if(!nuevo||!clave)return alert('Escribe usuario y contraseña.');
-  await llamar('usuarioNuevo',{nuevo,clave});$('#nu').value=$('#nc').value='';vacc();
+  const nuevo=$('#nu').value.trim();
+  if(!nuevo)return alert('Escribe el nombre del usuario.');
+  if([...$d.querySelectorAll('#us .tn span')].some(s=>s.textContent.toLowerCase()==nuevo.toLowerCase())&&!confirm('Ese usuario ya existe. ¿Volver su contraseña a la provisoria (12345678)?'))return;
+  await llamar('usuarioNuevo',{nuevo});$('#nu').value='';vacc();toast('✓ Usuario listo. Contraseña provisoria: 12345678');
 }
+async function urst(n){if(confirm('¿Volver la contraseña de '+n+' a la provisoria (12345678)? Tendrá que cambiarla al entrar.')){await llamar('usuarioNuevo',{nuevo:n});toast('✓ Contraseña restablecida a 12345678')}}
 async function nombresAdm(){
   const L=await llamar('listar',{hoja:'Nombres'});
   $('#ln').innerHTML=Array.isArray(L)&&L.length?L.map(x=>`<div class="tn"><span>${esc(x.nombre)}</span><button class="s" data-n="${esc(x.nombre)}" onclick="nbor(this.dataset.n)">Borrar</button></div>`).join(''):'<div class="tn">Aún no hay nombres.</div>';
@@ -342,7 +374,8 @@ async function borrarTodo(hoja,t){
 }
 async function cpw(){
   const a=$('#p1').value;
-  if(a.length<4)return alert('La contraseña debe tener al menos 4 caracteres.');
+  if(a.length<6)return alert('La contraseña debe tener al menos 6 caracteres.');
+  if(a=='12345678')return alert('Elige una contraseña distinta de la provisoria.');
   if(a!=$('#p2').value)return alert('Las contraseñas no coinciden.');
   const r=await llamar('clavePropia',{nueva:a});
   if(r.ok){K=a;guardarSes(!!localStorage.ses);$('#p1').value=$('#p2').value='';alert('Contraseña actualizada.')}else alert('No se pudo cambiar la contraseña.');
