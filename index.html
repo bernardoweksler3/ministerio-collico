@@ -4,15 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ministerio Congregación Collico</title>
+<meta name="theme-color" content="#14465e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Collico">
 <style>
 :root{--bg:#f3f6f8;--card:#fff;--tx:#17212a;--mu:#5b6a76;--bd:#dce3e9;--az:#1d5d79;--az2:#e3eef3;--ac:#1d5d79;--sh:0 1px 2px rgba(16,40,60,.06),0 6px 18px rgba(16,40,60,.06);--g:#e4e8ec;--a:#f4d03f;--v:#2e7d4f;--w:#37424c;--c0:#eaf3f7;--c1:#faf3df;--c1h:#7a5b12;--pel:#b3261e}
 :root[data-t=dark]{--bg:#0e151b;--card:#17212a;--tx:#e6edf2;--mu:#9bacb8;--bd:#2a3844;--az:#6ab7d6;--az2:#1f3342;--ac:#2a7a9c;--sh:none;--g:#2a343c;--a:#d4a91f;--v:#2f8f58;--w:#06090c;--c0:#1a2a35;--c1:#2b2718;--c1h:#8f6f16;--pel:#ff8f85}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--tx);background:var(--bg)}
-header{background:linear-gradient(135deg,#14465e,#1f7a99);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700;font-size:17px}
+header{background:linear-gradient(135deg,#14465e,#1f7a99);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-weight:700;font-size:17px}
 header .ic{background:rgba(255,255,255,.16);border-color:transparent;color:#fff;padding:6px 10px;font-size:14px}
-main{max-width:820px;margin:0 auto;padding:14px}
+main{max-width:820px;margin:0 auto;padding:14px;zoom:var(--z,1)}
+.hb{display:flex;gap:6px}
 main>section{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;box-shadow:var(--sh)}
 h1{font-size:21px;margin:0 0 10px}h2{font-size:17px;margin:12px 0 6px}h3{margin:0}p{margin:6px 0}
 button{font:inherit;font-weight:600;padding:8px 14px;border:1px solid var(--ac);background:var(--ac);color:#fff;border-radius:9px;cursor:pointer}
@@ -72,6 +79,22 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 .tr label{margin:0;font-weight:400}
 .tr input[type=checkbox]{width:20px;height:20px;vertical-align:middle}
 .tr .l{width:90px;padding:4px 8px}
+#bar{position:fixed;top:0;left:0;height:3px;width:100%;background:linear-gradient(90deg,transparent,#f4d03f,transparent) no-repeat;background-size:40% 100%;animation:barra 1s linear infinite;display:none;z-index:60}
+@keyframes barra{from{background-position:-40% 0}to{background-position:140% 0}}
+@keyframes gira{to{transform:rotate(360deg)}}
+#carga{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ac);color:#fff;padding:8px 18px;border-radius:30px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.3);display:none;align-items:center;gap:8px;z-index:70;max-width:92vw}
+#carga.on{display:flex}
+#carga.sp::before{content:'';width:14px;height:14px;border:3px solid currentColor;border-right-color:transparent;border-radius:50%;animation:gira .8s linear infinite}
+#carga.er{background:#b3261e}
+.pasos ol{margin:4px 0 0;padding-left:20px}
+.mu{color:var(--mu);font-size:14px}
+.rec{display:flex;align-items:center;gap:8px;font-weight:400}
+.rec input{width:auto}
+.av{color:var(--pel);font-size:13px;font-weight:600;margin-left:6px}
+.dia.sucio{border-color:#e0a100}
+.dia.sucio h3{background:#e0a100;color:#1b1b1b}
+.dia.sucio h3::after{content:'  · cambios sin guardar'}
+.tn.gd{justify-content:flex-end}
 footer{margin-top:28px;text-align:center;font-size:13px}
 footer a{color:var(--mu);cursor:pointer}
 #pdf{display:none;color:#1c2429;background:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -93,12 +116,14 @@ footer a{color:var(--mu);cursor:pointer}
 #pdf .dir{color:#5b6a76;font-size:10.5px}
 #pdf .pie{margin:6px 0 0;text-align:center;color:#6b7a82;font-size:9.5px}
 @page{size:A4;margin:8mm}
-@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{background:#fff}header,.tabs,footer,.noimp{display:none}main{max-width:none;padding:0}main>section{border:0;box-shadow:none;padding:0}.dia{break-inside:avoid}body.imp header,body.imp main{display:none}body.imp #pdf{display:block}}
+@media print{main{zoom:1}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{background:#fff}header,.tabs,footer,.noimp{display:none}main{max-width:none;padding:0}main>section{border:0;box-shadow:none;padding:0}.dia{break-inside:avoid}body.imp header,body.imp main{display:none}body.imp #pdf{display:block}}
 </style>
-<script>try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.t='light'}</script>
+<script>try{document.documentElement.style.setProperty('--z',[.9,1,1.15,1.3,1.5][localStorage.fz==null?1:+localStorage.fz])}catch(e){}
+try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.t='light'}</script>
 </head>
 <body>
-<header><span>Ministerio Congregación Collico</span><button id="tm" class="ic" onclick="tema()" aria-label="Cambiar entre modo claro y oscuro"></button></header>
+<div id="bar"></div><div id="carga" role="status" aria-live="polite"></div>
+<header><span>Ministerio Congregación Collico</span><span class="hb"><button class="ic" onclick="fs(-1)" aria-label="Letra más pequeña">A−</button><button class="ic" onclick="fs(1)" aria-label="Letra más grande">A+</button><button id="tm" class="ic" onclick="tema()" aria-label="Cambiar entre modo claro y oscuro"></button></span></header>
 <main>
 <nav class="tabs">
   <button data-v="cap" onclick="ir('cap')">Capitanes de Grupo</button>
@@ -110,6 +135,7 @@ footer a{color:var(--mu);cursor:pointer}
 
 <section id="cap">
   <h2>Disponibilidad para ser capitán</h2>
+  <div class="aviso pasos"><b>¿Cómo funciona?</b><ol><li>Elige tu nombre.</li><li>Toca en el calendario los días en que puedes ser capitán.</li><li>Elige los horarios y la modalidad, y pulsa <b>Enviar disponibilidad</b>.</li></ol></div>
   <label for="nombre">Nombre</label><select id="nombre"></select>
   <div class="nav"><button class="s" onclick="cmes(-1)">‹</button><h2 id="cmes"></h2><button class="s" onclick="cmes(1)">›</button></div>
   <div id="cal" class="cal"></div>
@@ -138,6 +164,7 @@ footer a{color:var(--mu);cursor:pointer}
 
 <section id="prog" hidden>
   <h1>Programa</h1>
+  <p class="mu noimp">Completa cada horario y pulsa <b>Guardar día</b>. Cuando el día esté completo se pondrá verde.</p>
     <div id="dias"></div>
   <p class="noimp"><button onclick="pdf()">Exportar PDF</button></p>
   <p class="so" hidden><button class="pel" onclick="borrarTodo('Programa','todo el programa')">Borrar todo</button></p>
@@ -156,6 +183,8 @@ footer a{color:var(--mu);cursor:pointer}
   <div id="login">
     <label for="lu">Usuario</label><input id="lu" autocomplete="username">
     <label for="lc">Contraseña</label><input id="lc" type="password" autocomplete="current-password">
+    <label class="rec"><input type="checkbox" id="lr" checked> Mantener la sesión iniciada (14 días)</label>
+    <p class="mu">No lo marques si usas un equipo que no es tuyo.</p>
     <p><button onclick="entrar()">Entrar</button></p>
   </div>
   <div id="sesion" hidden>
@@ -198,10 +227,24 @@ const URL_SCRIPT='https://script.google.com/macros/s/AKfycbxKG0CiXUpi4Pf8P-xekS8
 const $=s=>$d.querySelector(s),$d=document, SEM=['10:00','18:00','19:00'], FIN=['10:00','10:30','11:00'], MD=['🚪 Casa en casa','💻 Por Zoom'];
 const CAMPOS={Puntos:[['nombre','Nombre'],['direccion','Dirección']],
   Territorios:[['numero','Número'],['zona','Nombre'],['asignado','Asignado a'],['nota','Nota']]};
-let U=sessionStorage.u||'',K=sessionStorage.k||'',R=sessionStorage.r||'',NOTA='',DEST='cap',V='cap';
+const leerSes=()=>{try{const o=JSON.parse(localStorage.ses||'null');if(o&&o.e>Date.now())return o;localStorage.removeItem('ses')}catch(e){}return null};
+const S0=leerSes()||{u:sessionStorage.u||'',k:sessionStorage.k||'',r:sessionStorage.r||''};
+let U=S0.u,K=S0.k,R=S0.r,NOTA='',DEST='cap',V='cap';
+function guardarSes(rec){try{if(rec)localStorage.ses=JSON.stringify({u:U,k:K,r:R,e:Date.now()+14*864e5});else Object.assign(sessionStorage,{u:U,k:K,r:R})}catch(e){}}
+function olvidar(){try{localStorage.removeItem('ses');sessionStorage.clear()}catch(e){}}
 let hoy=new Date(), M={y:hoy.getFullYear(),m:hoy.getMonth()};
-const llamar=(a,d={})=>fetch(URL_SCRIPT,{method:'POST',body:JSON.stringify({a,u:U,c:K,...d})}).then(r=>r.json())
-  .then(r=>{if(r.error=='acceso'&&a!='login')salir(true);return r});
+let PEND=0,TT=0;
+function carga(m,t){const e=$('#carga');e.textContent=m;e.className=m?'on '+(t||'sp'):'';$('#bar').style.display=m&&t!='er'&&t!='ok'?'block':'none'}
+function toast(m,mal){carga(m,mal?'er':'ok');clearTimeout(TT);TT=setTimeout(()=>{if(!PEND)carga('')},mal?4000:2200)}
+const LECT=['listar','publico','login'];
+const llamar=(a,d={})=>{
+  PEND++;carga(LECT.includes(a)?'Cargando…':'Guardando…');
+  return fetch(URL_SCRIPT,{method:'POST',body:JSON.stringify({a,u:U,c:K,...d})}).then(r=>r.json())
+    .then(r=>{if(r.error=='acceso'&&a!='login')salir(true);if(r.error=='ocupado')toast('Hay mucha gente guardando. Intenta de nuevo en unos segundos.',1);return r})
+    .finally(()=>{if(--PEND<=0){PEND=0;carga('')}});
+};
+const FZ=[.9,1,1.15,1.3,1.5];
+function fs(d){const i=Math.min(FZ.length-1,Math.max(0,(localStorage.fz==null?1:+localStorage.fz)+d));try{localStorage.fz=i}catch(e){}$d.documentElement.style.setProperty('--z',FZ[i])}
 const f2=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const turnos=k=>{const w=new Date(k+'T12:00').getDay();return w==0||w==6?FIN:SEM};
 const DS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'],
@@ -219,7 +262,7 @@ function ir(v){
   ({cap:pub,pto:()=>lista('Puntos','#lpto'),ter:()=>lista('Territorios','#lter'),prog,acc:vacc,est})[v]();
 }
 function salir(forzado){
-  U=K=R='';sessionStorage.clear();DEST='cap';
+  U=K=R='';olvidar();DEST='cap';
   if(forzado)NOTA='Tu sesión no es válida. Ingresa de nuevo.';
   ir(forzado?'acc':'cap');
 }
@@ -227,7 +270,7 @@ async function entrar(){
   const u=$('#lu').value.trim(),c=$('#lc').value;
   const r=await llamar('login',{u,c}).catch(()=>({error:'red'}));
   if(!r.ok){$('#msg').textContent=r.error=='red'?'No se pudo conectar con la planilla.':'Usuario o contraseña incorrectos.';return}
-  U=u;K=c;R=r.rol;Object.assign(sessionStorage,{u,k:c,r:r.rol});$('#lc').value='';ir(DEST);
+  U=u;K=c;R=r.rol;guardarSes($('#lr').checked);$('#lc').value='';ir(DEST);
 }
 async function vacc(){
   $('#msg').textContent=NOTA;NOTA='';
@@ -260,7 +303,7 @@ async function cpw(){
   if(a.length<4)return alert('La contraseña debe tener al menos 4 caracteres.');
   if(a!=$('#p2').value)return alert('Las contraseñas no coinciden.');
   const r=await llamar('clavePropia',{nueva:a});
-  if(r.ok){K=a;sessionStorage.k=a;$('#p1').value=$('#p2').value='';alert('Contraseña actualizada.')}else alert('No se pudo cambiar la contraseña.');
+  if(r.ok){K=a;guardarSes(!!localStorage.ses);$('#p1').value=$('#p2').value='';alert('Contraseña actualizada.')}else alert('No se pudo cambiar la contraseña.');
 }
 async function ubor(n){if(confirm('¿Borrar a '+n+'?')){await llamar('usuarioBorrar',{nuevo:n});vacc()}}
 
@@ -305,41 +348,55 @@ async function prog(){
   const pu=Q.map(x=>x.nombre),na=N.map(x=>x.nombre).sort();let h='';
   for(let z=-1;z<=10;z++){
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));
-    const cp=t=>((P.find(x=>x.fecha==k&&x.turno==t)||{}).capitan||'').trim();
     h+=`<div class="dia" data-k="${k}"><h3>${fechaLarga(k)}</h3>`;
     for(const t of turnos(k)){
-      const o=t=='18:00'?'19:00':t=='19:00'?'18:00':'';
-      if(o&&turnos(k)===SEM&&!cp(t)&&cp(o))continue;
       const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
-      h+=`<div class="tn" data-k="${k}" data-t="${t}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><b>${t}</b>${opc(pu,r.punto,'Punto de encuentro')}${opc(na,r.capitan,'Capitán')}<button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button><button onclick="guardar(this)">Guardar</button></div>`}
-    h+='</div>';
+      h+=`<div class="tn" data-k="${k}" data-t="${t}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><b>${t}</b>${opc(pu,r.punto,'Punto de encuentro')}${opc(na,r.capitan,'Capitán')}<button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button></div>`}
+    h+='<div class="tn gd"><button onclick="guardarDia(this)">Guardar día</button></div></div>';
   }
-  box.innerHTML=h;marcar();
+  box.innerHTML=h;marcar();tarde();
 }
 const comp=(k,t)=>{const r=PRG.find(x=>x.fecha==k&&x.turno==t);return !!(r&&r.punto&&r.capitan&&r.territorios)};
 const listo=k=>esFin(k)?FIN.every(t=>comp(k,t)):comp(k,'10:00')&&(comp(k,'18:00')||comp(k,'19:00'));
 function marcar(){
-  $d.querySelectorAll('#dias .dia').forEach(d=>{d.classList.toggle('ok',listo(d.dataset.k));d.querySelectorAll('.tn').forEach(r=>r.classList.toggle('ok',comp(r.dataset.k,r.dataset.t)))});
+  $d.querySelectorAll('#dias .dia').forEach(d=>{d.classList.toggle('ok',listo(d.dataset.k));d.querySelectorAll('.tn[data-t]').forEach(r=>r.classList.toggle('ok',comp(r.dataset.k,r.dataset.t)))});
 }
-$('#dias').addEventListener('change',e=>{const b=e.target.closest('.tn')?.querySelector('button:last-child');if(b)b.textContent='Guardar'});
-async function guardar(b){
-  const e=b.parentNode,s=e.querySelectorAll('select'),t=e.dataset.t,k=e.dataset.k;b.disabled=true;
-  try{const r=await llamar('guardar',{hoja:'Programa',fila:{fecha:k,turno:t,punto:s[0].value,capitan:s[1].value,territorios:e.dataset.ter||'',nota:e.dataset.nota||''}});
-    if(r.ok){const f={fecha:k,turno:t,punto:s[0].value,capitan:s[1].value,territorios:e.dataset.ter||'',nota:e.dataset.nota||''},i=PRG.findIndex(x=>x.fecha==k&&x.turno==t);i<0?PRG.push(f):PRG[i]=f;marcar()}
-    if(r.ok&&(t=='18:00'||t=='19:00')&&turnos(k)===SEM)return prog();
-    b.textContent=r.ok?'✓ Guardado':'Error';
-  }catch(x){b.textContent='Error'}
+function tarde(){
+  $d.querySelectorAll('#dias .dia').forEach(d=>{const k=d.dataset.k;if(esFin(k))return;
+    const cp=t=>((PRG.find(x=>x.fecha==k&&x.turno==t)||{}).capitan||'').trim(),a=d.querySelector('[data-t="18:00"]'),b=d.querySelector('[data-t="19:00"]');
+    a.hidden=!cp('18:00')&&!!cp('19:00');b.hidden=!cp('19:00')&&!!cp('18:00')});
+}
+const sucio=el=>{const d=el.closest('.dia');if(d){d.classList.add('sucio');d.querySelector('.gd button').textContent='Guardar día'}};
+$('#dias').addEventListener('change',e=>sucio(e.target));
+async function guardarDia(b){
+  const d=b.closest('.dia'),k=d.dataset.k,filas=[];
+  d.querySelectorAll('.tn[data-t]').forEach(e=>{
+    if(e.hidden)return;const s=e.querySelectorAll('select'),t=e.dataset.t;
+    const f={fecha:k,turno:t,punto:s[0].value,capitan:s[1].value,territorios:e.dataset.ter||'',nota:e.dataset.nota||''};
+    if(PRG.some(x=>x.fecha==k&&x.turno==t)||f.punto||f.capitan||f.territorios)filas.push(f);
+  });
+  if(!filas.length)return toast('No hay nada que guardar en este día.');
+  b.disabled=true;
+  try{const r=await llamar('guardarLote',{hoja:'Programa',filas});
+    if(r.ok){filas.forEach(f=>{const i=PRG.findIndex(x=>x.fecha==k&&x.turno==f.turno);i<0?PRG.push(f):PRG[i]=f});d.classList.remove('sucio');b.textContent='Guardar día';marcar();tarde();toast('✓ Día guardado')}
+    else if(r.error!='ocupado')toast('No se pudo guardar. Intenta de nuevo.',1);
+  }catch(x){toast('No se pudo guardar. Revisa tu internet.',1)}
   b.disabled=false;
 }
+let CONF={};
+const solapa=(a,b)=>!a||!b||[...a].some(c=>b.includes(c));
 function abrirT(b){
   CUR=b.closest('.tn');const m=Object.fromEntries(parseT(CUR.dataset.ter));
+  CONF={};$d.querySelectorAll(`#dias .tn[data-k="${CUR.dataset.k}"]`).forEach(e=>{if(e===CUR||e.hidden)return;parseT(e.dataset.ter).forEach(([n,l])=>(CONF[n]??=[]).push({t:e.dataset.t,l}))});
   $('#dtl').innerHTML=TER.length?TER.map(x=>{const n=String(x.numero);
-    return `<div class="tr"><label><input type="checkbox" data-n="${esc(n)}"${n in m?' checked':''}> ${esc(n)} ${esc(lim(x.zona))}</label><input class="l" placeholder="Letras" aria-label="Letras de las manzanas del territorio ${esc(n)}" value="${esc(m[n]||'')}" oninput="this.parentNode.querySelector('[type=checkbox]').checked=true"></div>`}).join(''):'<p>Aún no hay territorios. Cárgalos en la pestaña Territorios.</p>';
+    return `<div class="tr"><label><input type="checkbox" data-n="${esc(n)}"${n in m?' checked':''}> ${esc(n)} ${esc(lim(x.zona))}${n in CONF?` <span class="av">⚠ ya está a las ${CONF[n].map(z=>z.t).join(', ')}</span>`:''}</label><input class="l" placeholder="Letras" aria-label="Letras de las manzanas del territorio ${esc(n)}" value="${esc(m[n]||'')}" oninput="this.parentNode.querySelector('[type=checkbox]').checked=true"></div>`}).join(''):'<p>Aún no hay territorios. Cárgalos en la pestaña Territorios.</p>';
   $('#dt').showModal();
 }
 function dtok(){
-  const L=[...$d.querySelectorAll('#dtl .tr')].filter(r=>r.querySelector('[type=checkbox]').checked).map(r=>{const n=r.querySelector('[type=checkbox]').dataset.n,l=r.querySelector('.l').value.toUpperCase().replace(/[^A-ZÑ]/g,'');return n+(l?':'+l:'')});
-  CUR.dataset.ter=L.join(';');CUR.querySelector('.s').textContent=terrTxt(CUR.dataset.ter);CUR.querySelector('button:last-child').textContent='Guardar';$('#dt').close();
+  const L=[...$d.querySelectorAll('#dtl .tr')].filter(r=>r.querySelector('[type=checkbox]').checked).map(r=>[r.querySelector('[type=checkbox]').dataset.n,r.querySelector('.l').value.toUpperCase().replace(/[^A-ZÑ]/g,'')]);
+  const cf=L.filter(([n,l])=>(CONF[n]||[]).some(x=>solapa(l,x.l)));
+  if(cf.length&&!confirm('⚠ Territorio repetido en el mismo día:\n\n'+cf.map(([n])=>'• El '+n+' ya está asignado a las '+CONF[n].map(x=>x.t).join(', ')).join('\n')+'\n\n¿Quieres usarlo igual?'))return;
+  CUR.dataset.ter=L.map(([n,l])=>n+(l?':'+l:'')).join(';');CUR.querySelector('.s').textContent=terrTxt(CUR.dataset.ter);sucio(CUR);$('#dt').close();
 }
 function pdf(){
   const nt=n=>{const t=TER.find(x=>String(x.numero)==n);return `<b>${esc(n)}</b> ${t?esc(lim(t.zona)):''}`};
@@ -418,8 +475,10 @@ async function enviar(){
   const filas=ks.flatMap(k=>[...S[k]].map(t=>({fecha:k,turno:t}))),b=$('#env');
   b.disabled=true;
   try{const r=await llamar('inscribir',{nombre,modalidad:[...MS].join(' y '),filas});
-    if(r.error)o.textContent='Error: '+r.error;
-    else{o.textContent='¡Listo! Tu disponibilidad fue enviada.';S={};MS.clear();$('#nombre').value='';dib()}
+    if(r.error)o.textContent=r.error=='ocupado'?'Hay mucha gente enviando. Intenta de nuevo en unos segundos.':'Error: '+r.error;
+    else{const n=r.nuevos??filas.length,rp=r.repetidos||0;
+      o.textContent='¡Listo! '+(n?'Se '+(n>1?'enviaron '+n+' ofrecimientos':'envió 1 ofrecimiento')+'.':'No se agregó nada nuevo.')+(rp?' Ya tenías '+rp+(rp>1?' enviados antes':' enviado antes')+', no se repitieron.':'');
+      S={};MS.clear();$('#nombre').value='';dib();pub()}
   }catch(x){o.textContent='No se pudo enviar. Revisa tu internet e intenta de nuevo.'}
   b.disabled=false;
 }
@@ -429,7 +488,7 @@ async function cap(){
     const [I,P]=await Promise.all([llamar('listar',{hoja:'Inscripciones'}),llamar('listar',{hoja:'Programa'})]);
     if(!Array.isArray(I))return;
     const cd=(f,t)=>((P.find(x=>x.fecha==f&&x.turno==t)||{}).capitan||'').trim();
-    const g={};I.filter(x=>x.fecha>=f2(hoy)).forEach(x=>((g[x.fecha]??={})[x.turno]??=[]).push(x));
+    const vs=new Set(),g={};I.filter(x=>{const q=x.fecha+'|'+x.turno+'|'+x.nombre;return x.fecha>=f2(hoy)&&!vs.has(q)&&vs.add(q)}).forEach(x=>((g[x.fecha]??={})[x.turno]??=[]).push(x));
     const fs=Object.keys(g).sort();
     a.innerHTML='<h2>Inscritos</h2>'+(fs.map((f,i)=>`<div class="fd c${i%2}"><h3>${fechaLarga(f)}</h3>`+Object.keys(g[f]).sort().map(t=>{
       const cp=cd(f,t),o=t=='18:00'?'19:00':t=='19:00'?'18:00':'',cub=!cp&&o&&turnos(f)===SEM&&cd(f,o);
