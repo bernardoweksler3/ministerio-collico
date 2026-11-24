@@ -406,24 +406,29 @@ async function prog(){
       h+=`<div class="tn" data-k="${k}" data-t="${t}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><b>${t}</b>${opcPunto(r.punto)}${opcCap(k,t,r.capitan)}<button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button></div>`}
     h+='<div class="tn gd"><button onclick="guardarDia(this)">Guardar día</button><button class="pel" onclick="eliminarDia(this)">Eliminar día</button></div></div>';
     return h};
-  ZMIN=Math.min(ZMIN,1);ZMAX=Math.max(ZMAX,1);
-  for(let z=-1;z<=10;z++){const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));if(P.some(x=>x.fecha==k&&(x.capitan||x.punto||x.territorios))){ZMIN=Math.min(ZMIN,z);ZMAX=Math.max(ZMAX,z)}}
-  for(let z=ZMIN;z<=ZMAX;z++)h+=DIA(z);
+  for(let z=-1;z<=10;z++){const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));if(P.some(x=>x.fecha==k&&(x.capitan||x.punto||x.territorios)))VIS.add(z)}
+  [...VIS].sort((a,b)=>a-b).forEach(z=>h+=DIA(z));
+  if(!VIS.size)h='<p class="mu">No hay días a la vista. Usa los botones para agregar el día que necesites.</p>';
   box.innerHTML=h;marcar();tarde();zbot();
 }
-let DIA=null,FILA=null,ZMIN=1,ZMAX=1;
+let DIA=null,FILA=null;const VIS=new Set([1]);
 const hh=t=>String(t||'').split('~')[0];
 const GRUPOS=['Grupo 1','Grupo 2','Grupo 3','Grupo 4','Grupo 5','Grupo General'];
 const grHtml=v=>{const s=String(v||'').split(',').map(x=>x.trim());return GRUPOS.map(g=>`<label><input type="checkbox" value="${g}"${s.includes(g)?' checked':''}>${g}</label>`).join('')};
 const grTxt=v=>{const L=String(v||'').split(',').map(x=>x.trim()).filter(Boolean);if(!L.length)return '';const n=L.filter(x=>/^Grupo \d$/.test(x)).map(x=>x.slice(6));return L.includes('Grupo General')&&!n.length?'Grupo General':n.length==L.length?(n.length>1?'Grupos ':'Grupo ')+n.join(', '):L.join(', ')};
 function masFila(b){const d=b.closest('.dia');b.closest('.tn').insertAdjacentHTML('beforebegin',FILA(d.dataset.k,{}));sucio(b)}
 function quitarFila(b){const r=b.closest('.tn'),d=r.closest('.dia');sucio(r);r.remove()}
-function zbot(){$('#zant').disabled=ZMIN<=-1;$('#zsig').disabled=ZMAX>=10}
+function zbot(){$('#zant').disabled=VIS.size>0&&Math.min(...VIS)<=-1;$('#zsig').disabled=VIS.size>0&&Math.max(...VIS)>=10}
 function masDia(s){
   if(!DIA)return;
-  const box=$('#dias');
-  if(s<0){if(ZMIN<=-1)return;ZMIN--;box.insertAdjacentHTML('afterbegin',DIA(ZMIN));box.firstElementChild.scrollIntoView({behavior:'smooth',block:'nearest'})}
-  else{if(ZMAX>=10)return;ZMAX++;box.insertAdjacentHTML('beforeend',DIA(ZMAX));box.lastElementChild.scrollIntoView({behavior:'smooth',block:'nearest'})}
+  const box=$('#dias');let z;
+  if(!VIS.size)z=1;
+  else if(s<0){z=Math.min(...VIS)-1;if(z<-1)return}
+  else{z=Math.max(...VIS)+1;if(z>10)return}
+  if(!VIS.size)box.innerHTML='';
+  VIS.add(z);
+  box.insertAdjacentHTML(s<0&&VIS.size>1?'afterbegin':'beforeend',DIA(z));
+  (s<0&&VIS.size>1?box.firstElementChild:box.lastElementChild).scrollIntoView({behavior:'smooth',block:'nearest'});
   marcar();tarde();zbot();
 }
 const comp=(k,t)=>{const r=PRG.find(x=>x.fecha==k&&x.turno==t);return !!(r&&r.punto&&r.capitan&&r.territorios)};
@@ -477,7 +482,7 @@ async function eliminarDia(b){
     PRG=PRG.filter(x=>x.fecha!=k);
   }
   const z=Math.round((new Date(k+'T12:00')-new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate(),12))/864e5);
-  d.outerHTML=DIA(z);marcar();tarde();toast('✓ Día eliminado');
+  VIS.delete(z);d.remove();if(!VIS.size)$('#dias').innerHTML='<p class="mu">No hay días a la vista. Usa los botones para agregar el día que necesites.</p>';zbot();toast('✓ Día eliminado');
 }
 async function guardarFin(b,d,k){
   const filas=[],cuenta={};
