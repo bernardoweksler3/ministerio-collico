@@ -24,6 +24,7 @@ h1{font-size:26px;margin:12px 0 4px}
 .tn{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 12px;border-top:1px solid var(--bd)}
 .tn:first-child{border-top:0}
 .tn b{min-width:58px}.tn span{flex:1 1 120px}.tn input{flex:1 1 140px;width:auto;padding:6px}
+.tn small{flex:1 1 100%;color:#55666f;font-size:14px}
 .nav{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .nav h2{text-transform:capitalize;margin:0}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0}
@@ -60,15 +61,13 @@ footer a{color:#55666f;cursor:pointer}
 </nav>
 
 <section id="cap">
-  <h1>Capitanes de predicación</h1>
   <h2>Disponibilidad para ser capitán</h2>
-  <p>Marca los días en que puedes acompañar la predicación.</p>
   <label for="nombre">Nombre</label><select id="nombre"></select>
   <label>¿Qué días puedes ser capitán?</label>
   <p>Toca los días en que puedes. Para quitar uno, vuelve a tocarlo.</p>
   <div class="nav"><button class="s" onclick="cmes(-1)">‹</button><h2 id="cmes"></h2><button class="s" onclick="cmes(1)">›</button></div>
   <div id="cal" class="cal"></div>
-  <p class="ley"><span><i class="sw v"></i>Día completo</span><span><i class="sw a"></i>Queda un horario disponible</span><span><i class="sw g"></i>Sin capitán todavía</span></p>
+  <p class="ley"><span><i class="sw v"></i>Día completo</span><span><i class="sw a"></i>Queda un horario disponible</span><span><i class="sw g"></i>Sin capitán</span></p>
   <p id="resumen"></p>
   <div id="hd"></div>
   <label>Modalidad de predicación</label>
@@ -124,7 +123,7 @@ footer a{color:#55666f;cursor:pointer}
 // Pega aquí la URL que te da Google Apps Script (termina en /exec)
 const URL_SCRIPT='https://script.google.com/macros/s/AKfycbxKG0CiXUpi4Pf8P-xekS8EcF7y40ox37zahZQQ8MVr_cdHOJ4A9b8j-0TmF_4l9qQZ/exec';
 
-const $=s=>$d.querySelector(s),$d=document, T=['10:00','16:00','19:00'], MD=['🚪 Casa en casa','💻 Por Zoom'];
+const $=s=>$d.querySelector(s),$d=document, SEM=['10:00','18:00','19:00'], FIN=['10:00','10:30','11:00'], MD=['🚪 Casa en casa','💻 Por Zoom'];
 const CAMPOS={Puntos:[['nombre','Nombre'],['direccion','Dirección']],
   Territorios:[['numero','Número'],['zona','Zona o descripción'],['asignado','Asignado a'],['nota','Nota']]};
 let U=sessionStorage.u||'',K=sessionStorage.k||'',R=sessionStorage.r||'',NOTA='',DEST='cap',V='cap';
@@ -132,6 +131,10 @@ let hoy=new Date(), M={y:hoy.getFullYear(),m:hoy.getMonth()};
 const llamar=(a,d={})=>fetch(URL_SCRIPT,{method:'POST',body:JSON.stringify({a,u:U,c:K,...d})}).then(r=>r.json())
   .then(r=>{if(r.error=='acceso'&&a!='login')salir(true);return r});
 const f2=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const turnos=k=>{const w=new Date(k+'T12:00').getDay();return w==0||w==6?FIN:SEM};
+const DS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'],
+  MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const fechaLarga=k=>{const d=new Date(k+'T12:00');return isNaN(d)?k:`${DS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}, ${d.getFullYear()}`};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 function ir(v){
@@ -201,7 +204,7 @@ async function prog(){
   for(let d=1;d<=n;d++){
     const dt=new Date(M.y,M.m,d),k=f2(dt);
     h+=`<div class="dia"><h3>${dt.toLocaleDateString('es-CL',{weekday:'long',day:'numeric'})}</h3>`;
-    for(const t of T){const ok=k>=MIN&&k<=MAX,dz=ok?'':'disabled',r=P.find(x=>x.fecha==k&&x.turno==t)||{};
+    for(const t of turnos(k)){const ok=k>=MIN&&k<=MAX,dz=ok?'':'disabled',r=P.find(x=>x.fecha==k&&x.turno==t)||{};
       h+=`<div class="tn" data-k="${k}" data-t="${t}"><b>${t}</b><input ${dz} placeholder="Capitán" value="${esc(r.capitan)}"><input ${dz} list="pl" placeholder="Punto de reunión" value="${esc(r.punto)}"><input ${dz} placeholder="Nota" value="${esc(r.nota)}">${ok?'<button onclick="guardar(this)">Guardar</button>':''}</div>`}
     h+='</div>';
   }
@@ -223,7 +226,7 @@ function cmes(n){C.m+=n;if(C.m>11){C.m=0;C.y++}if(C.m<0){C.m=11;C.y--}dib()}
 function dia(k){S[k]?delete S[k]:S[k]=new Set();dib()}
 function hd(k,t){tg(S[k],t);dib()}
 function md(t){tg(MS,t);dib()}
-function estado(k){const n=T.filter(t=>OC.has(k+'|'+t)).length;return n==0?'g':n==T.length?'v':'a'}
+function estado(k){const L=turnos(k),n=L.filter(t=>OC.has(k+'|'+t)).length;return n==0?'g':n==L.length?'v':'a'}
 async function pub(){
   try{const r=await llamar('publico');NM=r.nombres||[];OC=new Set((r.ocupados||[]).map(x=>x.fecha+'|'+x.turno))}catch(e){}
   const s=$('#nombre'),v=s.value;
@@ -239,7 +242,7 @@ function dib(){
   $('#cal').innerHTML=h;
   $('#resumen').textContent=ks.length?`Has elegido ${ks.length} día${ks.length>1?'s':''}.`:'Todavía no has elegido ningún día.';
   $('#md').innerHTML=MD.map(t=>`<button class="ch${MS.has(t)?' on':''}" onclick="md('${t}')">${t}</button>`).join('');
-  $('#hd').innerHTML=ks.length?'<label>Elige los horarios de cada día</label>'+ks.map(k=>`<div class="tn"><b style="min-width:110px">${new Date(k+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'})}</b><span class="chips">`+T.map(t=>{const o=OC.has(k+'|'+t);return `<button class="ch${S[k].has(t)?' on':''}" ${o?'disabled':''} onclick="hd('${k}','${t}')">${t}${o?' (ocupado)':''}</button>`}).join('')+'</span></div>').join(''):'';
+  $('#hd').innerHTML=ks.length?'<label>Elige los horarios de cada día</label>'+ks.map(k=>`<div class="tn"><b style="min-width:110px">${new Date(k+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'})}</b><span class="chips">`+turnos(k).map(t=>{const o=OC.has(k+'|'+t);return `<button class="ch${S[k].has(t)?' on':''}" ${o?'disabled':''} onclick="hd('${k}','${t}')">${t}${o?' (ocupado)':''}</button>`}).join('')+'</span>'+(turnos(k)===FIN?'<small>Horario según superintendente de grupo</small>':'')+'</div>').join(''):'';
 }
 async function enviar(){
   const nombre=$('#nombre').value.trim(),ks=Object.keys(S).sort(),o=$('#ok');
@@ -264,7 +267,7 @@ async function cap(){
     const ks=Object.keys(g).sort();
     a.innerHTML='<h2>Inscritos</h2>'+(ks.map(k=>{
       const [f,t]=k.split('|'),r=P.find(x=>x.fecha==f&&x.turno==t)||{};
-      return `<div class="dia"><h3>${f} a las ${t}. Capitán: ${esc(r.capitan)||'sin elegir'}</h3>`+
+      return `<div class="dia"><h3>${fechaLarga(f)} a las ${t}. Capitán: ${esc(r.capitan)||'sin elegir'}</h3>`+
         g[k].map(x=>`<div class="tn"><span>${esc(x.nombre)}</span><span>${esc(x.modalidad)}</span><button data-f="${f}" data-t="${t}" data-n="${esc(x.nombre)}" onclick="elegir(this)">Elegir capitán</button></div>`).join('')+'</div>';
     }).join('')||'<p>Aún no hay inscritos.</p>');
   }catch(e){a.textContent='No se pudo cargar la lista.'}
