@@ -135,6 +135,10 @@ footer a{color:var(--mu);cursor:pointer}
 #lreg .rf{border-top:1px solid var(--bd);padding:6px 0}
 #lreg .rf:first-of-type{border-top:0}
 #lreg .lk{opacity:.7}
+#dlt>summary{font-size:1.05em;margin:10px 0}
+.sub{display:flex;gap:6px;margin:6px 0 12px}
+.sub button{background:transparent;color:var(--az);border:1px solid var(--bd);box-shadow:none}
+.sub button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 #s13bt{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
 #pdfw{overflow-x:auto;border-radius:8px;border:1px solid var(--bd)}
 .dv{width:min(96vw,700px);padding:12px}
@@ -163,7 +167,6 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
   <button data-v="pto" onclick="ir('pto')">Puntos de encuentro</button>
   <button data-v="ter" onclick="ir('ter')">Territorios</button>
   <button data-v="prog" onclick="ir('prog')">Programa</button>
-  <button data-v="reg" onclick="ir('reg')">Registro S-13</button>
   <button data-v="est" onclick="ir('est')">Estadísticas</button>
 </nav>
 
@@ -192,26 +195,32 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
 <section id="pto" hidden><h1>Puntos de encuentro</h1><div id="lpto"></div><p class="so" hidden><button class="pel" onclick="borrarTodo('Puntos','todos los puntos de encuentro')">Borrar todo</button></p></section>
 <section id="ter" hidden>
   <h1>Territorios</h1>
-  <details class="noimp"><summary>Cargar lista completa</summary>
-    <p>Pega una línea por territorio: primero el número y luego el nombre. Ejemplo: 1 Villa Los Álamos</p>
-    <textarea id="tl" rows="8"></textarea>
-    <p><button onclick="tcargar()">Cargar territorios</button></p>
-  </details>
-  <details class="so noimp" hidden><summary>Importar formularios S-13 (.docx)</summary>
-    <p>Elige uno o más formularios S-13 llenos. Se agregan al registro de asignaciones y se actualiza el "Último" de cada territorio. Si importas el mismo archivo dos veces, no se repite nada.</p>
-    <input type="file" id="s13f" accept=".docx" multiple aria-label="Archivos S-13">
-    <p><button onclick="s13Importar(this)">Importar</button></p><p id="s13r" class="mu"></p>
-  </details>
-  <input id="tbus" class="noimp" placeholder="Buscar territorio por número o nombre" aria-label="Buscar territorio" oninput="tfiltro()">
-  <div id="lter"></div>
-  <p class="so" hidden><button class="pel" onclick="borrarTodo('Territorios','todos los territorios')">Borrar todo</button></p>
-</section>
-
-<section id="reg" hidden>
-  <h1>Registro S-13</h1>
-  <p class="mu">Marca con ✓ los territorios que sí se trabajaron en cada programa. Al marcarlos quedan anotados en el formulario S-13 y se actualiza el "Último" en Territorios. Si no se trabajó, déjalo sin marcar.</p>
-  <div id="s13bt"></div>
-  <div id="lreg" class="regf"></div>
+  <div class="sub noimp" role="group" aria-label="Secciones de territorios">
+    <button id="sb-lista" class="on" onclick="sub('lista')">Territorios</button>
+    <button id="sb-reg" onclick="sub('reg')">Registro S-13</button>
+  </div>
+  <div id="t-lista">
+    <details class="noimp"><summary>Cargar lista completa</summary>
+      <p>Pega una línea por territorio: primero el número y luego el nombre. Ejemplo: 1 Villa Los Álamos</p>
+      <textarea id="tl" rows="8"></textarea>
+      <p><button onclick="tcargar()">Cargar territorios</button></p>
+    </details>
+    <details id="dlt"><summary>Todos los territorios</summary>
+      <input id="tbus" class="noimp" placeholder="Buscar territorio por número o nombre" aria-label="Buscar territorio" oninput="tfiltro()">
+      <div id="lter"></div>
+      <p class="so" hidden><button class="pel" onclick="borrarTodo('Territorios','todos los territorios')">Borrar todo</button></p>
+    </details>
+  </div>
+  <div id="t-reg" hidden>
+    <p class="mu">Marca con ✓ los territorios que sí se trabajaron en cada programa. Al marcarlos quedan anotados en el formulario S-13 y se actualiza el "Último" de cada territorio. Si no se trabajó, déjalo sin marcar.</p>
+    <div id="s13bt"></div>
+    <div id="lreg" class="regf"></div>
+    <details class="so noimp" hidden><summary>Importar formularios S-13 (.docx) · solo administrador</summary>
+      <p>Elige uno o más formularios S-13 llenos. Se agregan al registro y se actualiza el "Último" de cada territorio. Si importas el mismo archivo dos veces, no se repite nada.</p>
+      <input type="file" id="s13f" accept=".docx" multiple aria-label="Archivos S-13">
+      <p><button onclick="s13Importar(this)">Importar</button></p><p id="s13r" class="mu"></p>
+    </details>
+  </div>
 </section>
 
 <section id="prog" hidden>
@@ -327,7 +336,7 @@ function ir(v){
   $d.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
   $d.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
   $('#pie').textContent=U?'Acceso ('+U+')':'Acceso';
-  ({cap:pub,ofr:cap,pto:()=>lista('Puntos','#lpto'),ter:()=>lista('Territorios','#lter'),prog,reg,acc:vacc,est})[v]();
+  ({cap:pub,ofr:cap,pto:()=>lista('Puntos','#lpto'),ter:()=>sub(ST),prog,acc:vacc,est})[v]();
 }
 function salir(forzado){
   U=K=R='';olvidar();DEST='cap';
@@ -468,6 +477,13 @@ async function s13Importar(b){
   }catch(e){m.textContent='No se pudo leer el archivo. Debe ser un formulario S-13 en formato .docx.'}
   b.disabled=false;
 }
+/* Territorios: subpestañas */
+let ST='lista';
+function sub(s){
+  ST=s;$('#t-lista').hidden=s!='lista';$('#t-reg').hidden=s!='reg';
+  $('#sb-lista').classList.toggle('on',s=='lista');$('#sb-reg').classList.toggle('on',s=='reg');
+  if(s=='reg')reg();else lista('Territorios','#lter');
+}
 /* Pestaña Registro S-13 */
 async function reg(){
   const box=$('#lreg');box.textContent='Cargando…';$('#s13bt').textContent='';
@@ -507,14 +523,12 @@ async function regGuardar(cb){
   }catch(e){cb.checked=!cb.checked;toast('No se pudo guardar. Intenta de nuevo.',1)}
   cb.disabled=false;regExp();
 }
-function s13Hojas(){const c={};ASG.forEach(a=>c[a.numero]=(c[a.numero]||0)+1);return Math.max(1,Math.ceil(Math.max(0,...Object.values(c))/4))}
 function regExp(){
-  const n=s13Hojas();
-  $('#s13bt').innerHTML=Array.from({length:n},(_,i)=>`<button onclick="s13Descargar(${i+1},this)">📄 Descargar S-13${n>1?' · hoja '+(i+1):''}</button>`).join('')+`<span class="mu">${ASG.length} asignaciones registradas</span>`;
+  $('#s13bt').innerHTML=`<button onclick="s13Descargar(this)">📄 Descargar S-13</button><span class="mu">Con las últimas 2 fechas de cada territorio · ${ASG.length} asignaciones registradas</span>`;
 }
 const FMX=k=>{const d=new Date(k+'T12:00');return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')};
 const escXml=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-async function s13Descargar(hoja,b){
+async function s13Descargar(b){
   b.disabled=true;
   try{
     const r=await fetch('s13-plantilla.docx');if(!r.ok)throw 0;
@@ -524,13 +538,12 @@ async function s13Descargar(hoja,b){
     ASG.forEach(a=>(por[parseInt(a.numero)]??=[]).push(a));
     Object.entries(por).forEach(([n,L])=>{
       L.sort((a,b)=>(a.asignado+(a.completado||'')).localeCompare(b.asignado+(b.completado||'')));
-      L.slice((hoja-1)*4,hoja*4).forEach((a,j)=>{map['N'+n+'_'+(j+1)]=a.nombre;map['A'+n+'_'+(j+1)]=FMX(a.asignado);map['C'+n+'_'+(j+1)]=a.completado?FMX(a.completado):a.nota});
-      const p=hoja>1&&L[(hoja-1)*4-1];if(p)map['U'+n]=FMX(p.completado||p.asignado);
+      L.slice(-2).forEach((a,j)=>{map['N'+n+'_'+(j+1)]=a.nombre;map['A'+n+'_'+(j+1)]=FMX(a.asignado);map['C'+n+'_'+(j+1)]=a.completado?FMX(a.completado):a.nota});
     });
     xml=xml.replace(/\{\{(Y|[UNAC]\d+(?:_\d)?)\}\}/g,(m,k)=>escXml(map[k]));
     const u=new TextEncoder().encode(xml);
     z[i]={...z[i],m:0,crc:crc32(u),cs:u.length,us:u.length,raw:u};
-    const a=$d.createElement('a');a.href=URL.createObjectURL(zipEscribir(z));a.download=`S-13 Registro de asignación de territorio ${hoy.getFullYear()}${s13Hojas()>1?' hoja '+hoja:''}.docx`;
+    const a=$d.createElement('a');a.href=URL.createObjectURL(zipEscribir(z));a.download=`S-13 Registro de asignación de territorio ${hoy.getFullYear()}.docx`;
     $d.body.appendChild(a);a.click();a.remove();toast('✓ Formulario S-13 descargado');
   }catch(e){toast('No se pudo crear el formulario S-13.',1)}
   b.disabled=false;
@@ -566,6 +579,7 @@ async function lista(h,sel){
   if(!Array.isArray(L))return;
   if(h=='Territorios'){
     L.sort((a,b)=>a.numero-b.numero);
+    const sm=$('#dlt summary');if(sm)sm.textContent='Todos los territorios ('+L.length+')';
     const sucio=L.filter(x=>lim(x.zona)!=x.zona);
     if(sucio.length){await llamar('territoriosCargar',{filas:sucio.map(x=>({numero:x.numero,zona:lim(x.zona)}))});sucio.forEach(x=>x.zona=lim(x.zona))}
   }
@@ -730,6 +744,7 @@ function filtrarT(){
 }
 function tfiltro(){
   const q=norm($('#tbus').value.trim());
+  if(q)$('#dlt').open=true;
   $d.querySelectorAll('#lter .dia[data-id]').forEach(r=>{if(r.dataset.id)r.hidden=!!q&&!norm(r.textContent).includes(q)});
 }
 function abrirT(b){
