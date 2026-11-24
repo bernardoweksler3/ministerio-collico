@@ -111,7 +111,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 .tn.gd{justify-content:flex-end}
 footer{margin-top:28px;text-align:center;font-size:13px}
 footer a{color:var(--mu);cursor:pointer}
-#pdf{display:none;color:#1c2429;background:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#pdf{min-width:600px;color:#1c2429;background:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 #pdf .ph{background:linear-gradient(135deg,#14465e,#1f7a99);color:#fff;border-radius:8px;padding:7px 12px;text-align:center;margin-bottom:8px}
 #pdf h1{margin:0;font-size:18px;letter-spacing:1.5px;font-weight:800;line-height:1.2}
 #pdf h2{margin:1px 0 0;font-size:11px;letter-spacing:3px;font-weight:600;opacity:.92;line-height:1.2}
@@ -130,6 +130,15 @@ footer a{color:var(--mu);cursor:pointer}
 #pdf .dir{color:#5b6a76;font-size:10.5px}
 #pdf td.fn{font-style:italic;color:#3d5666;text-align:center}
 #pdf .pie{margin:6px 0 0;text-align:center;color:#6b7a82;font-size:9.5px}
+#pdfw{overflow-x:auto;border-radius:8px;border:1px solid var(--bd)}
+.dv{width:min(96vw,700px);padding:12px}
+.gr{display:flex;gap:5px;flex-wrap:wrap;flex:1 1 100%}
+.gr label{border:1px solid var(--bd);border-radius:16px;padding:3px 11px;cursor:pointer;font-size:14px;user-select:none}
+.gr label:has(input:checked){background:var(--ac);color:#fff;border-color:var(--ac)}
+.gr input{position:absolute;opacity:0;width:0;height:0;flex:none;padding:0}
+.gr label:has(input:focus-visible){outline:3px solid #e0a100;outline-offset:2px}
+.tn input.ho{flex:0 0 112px}
+.tn.wr{align-items:flex-start}
 @page{size:A4;margin:8mm}
 @media print{main{zoom:1}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{background:#fff}header,.tabs,footer,.noimp{display:none}main{max-width:none;padding:0}main>section{border:0;box-shadow:none;padding:0}.dia{break-inside:avoid}body.imp header,body.imp main{display:none}body.imp #pdf{display:block}}
 </style>
@@ -187,11 +196,11 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
 
 <section id="prog" hidden>
   <h1>Programa</h1>
-  <p class="mu noimp">Se muestra el día de mañana. Usa los botones para agregar días antes o después. Completa cada horario y pulsa <b>Guardar día</b>; cuando el día esté completo se pondrá verde.</p>
+  <p class="mu noimp">Se muestra el día de mañana. Usa los botones para agregar días antes o después. Completa cada horario y pulsa <b>Guardar día</b>; cuando el día esté completo se pondrá verde. Sábado y domingo: agrega los horarios y elige los grupos.</p>
   <p class="noimp"><button class="s" id="zant" onclick="masDia(-1)">＋ Agregar día anterior</button></p>
     <div id="dias"></div>
   <p class="noimp"><button class="s" id="zsig" onclick="masDia(1)">＋ Agregar día siguiente</button></p>
-  <p class="noimp"><button onclick="pdf()">Exportar PDF</button></p>
+  <p class="noimp"><button onclick="vistaPrevia()">Vista previa del programa</button></p>
   <p class="so" hidden><button class="pel" onclick="borrarTodo('Programa','todo el programa')">Borrar todo</button></p>
 </section>
 
@@ -242,12 +251,15 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
   <div id="dtl"></div>
   <p><button onclick="dtok()">Aceptar</button> <button class="s" onclick="$('#dt').close()">Cancelar</button></p>
 </dialog>
+<dialog id="dv" class="dv">
+  <div id="pdfw"><div id="pdf"></div></div>
+  <p><button onclick="compartir(this)">📲 Compartir por WhatsApp</button> <button class="s" onclick="$('#dv').close()">Cerrar</button></p>
+</dialog>
 <footer>
   <div class="hb"><button class="s" onclick="fs(-1)" aria-label="Letra más pequeña">A−</button><button class="s" onclick="fs(1)" aria-label="Letra más grande">A+</button><button id="tm" class="s" onclick="tema()" aria-label="Cambiar entre modo claro y oscuro"></button></div>
   <a id="pie" onclick="ir('acc')">Acceso</a>
 </footer>
 </main>
-<div id="pdf"></div>
 
 <script>
 // Pega aquí la URL que te da Google Apps Script (termina en /exec)
@@ -381,9 +393,12 @@ async function prog(){
     return `<select aria-label="Punto de encuentro"><option value="">Punto de encuentro</option>${pu.map(x=>`<option${x==v?' selected':''}>${esc(x)}</option>`).join('')}<option value="__otro"${man?' selected':''}>✏️ Otra dirección…</option></select><input class="po" placeholder="Escribe la dirección" aria-label="Otra dirección de encuentro" value="${man?esc(v):''}"${man?'':' hidden'}>`};
   const opcCap=(k,t,v)=>{const of=[...(OFR[k+'|'+t]||[])].filter(n=>na.includes(n)).sort(),otros=na.filter(n=>!of.includes(n)),o=x=>`<option${x==v?' selected':''}>${esc(x)}</option>`;
     return `<select aria-label="Capitán"><option value="">Capitán</option>${of.length?`<optgroup label="Se ofrecieron">${of.map(o).join('')}</optgroup>`:''}${otros.length?`<optgroup label="${of.length?'Otros':'Todos'}">${otros.map(o).join('')}</optgroup>`:''}${v&&!na.includes(v)?o(v):''}</select>`};
+  FILA=(k,r)=>`<div class="tn wr" data-k="${k}" data-t="${r.turno||'10:00'}" data-orig="${r.turno||''}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><input type="time" class="ho" value="${r.turno||'10:00'}" aria-label="Horario">${opcPunto(r.punto)}<div class="gr">${grHtml(r.capitan)}</div><button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button><button class="s x" onclick="quitarFila(this)" aria-label="Quitar horario">✕</button></div>`;
   DIA=z=>{let h='';
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));
-    if(esFin(k))return `<div class="dia fin" data-k="${k}"><h3>${fechaLarga(k)}</h3><div class="tn"><span class="mu">Arreglo por Grupo de Servicio</span></div></div>`;
+    if(esFin(k)){
+      const R=P.filter(x=>x.fecha==k&&(x.capitan||x.punto||x.territorios)).sort((a,b)=>a.turno.localeCompare(b.turno));
+      return `<div class="dia fin" data-k="${k}"><h3>${fechaLarga(k)}</h3><div class="tn"><span class="mu">Arreglo por Grupo de Servicio: agrega los horarios y elige los grupos.</span></div>${(R.length?R:[{}]).map(r=>FILA(k,r)).join('')}<div class="tn gd"><button onclick="guardarDia(this)">Guardar día</button><button class="s" onclick="masFila(this)">＋ Agregar horario</button></div></div>`}
     h+=`<div class="dia" data-k="${k}"><h3>${fechaLarga(k)}</h3>`;
     for(const t of turnos(k)){
       const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
@@ -394,7 +409,12 @@ async function prog(){
   for(let z=ZMIN;z<=ZMAX;z++)h+=DIA(z);
   box.innerHTML=h;marcar();tarde();zbot();
 }
-let DIA=null,ZMIN=1,ZMAX=1;
+let DIA=null,FILA=null,ZMIN=1,ZMAX=1;
+const GRUPOS=['Grupo 1','Grupo 2','Grupo 3','Grupo 4','Grupo 5','Grupo General'];
+const grHtml=v=>{const s=String(v||'').split(',').map(x=>x.trim());return GRUPOS.map(g=>`<label><input type="checkbox" value="${g}"${s.includes(g)?' checked':''}>${g}</label>`).join('')};
+const grTxt=v=>{const L=String(v||'').split(',').map(x=>x.trim()).filter(Boolean);if(!L.length)return '';const n=L.filter(x=>/^Grupo \d$/.test(x)).map(x=>x.slice(6));return L.includes('Grupo General')&&!n.length?'Grupo General':n.length==L.length?(n.length>1?'Grupos ':'Grupo ')+n.join(', '):L.join(', ')};
+function masFila(b){const d=b.closest('.dia');b.closest('.tn').insertAdjacentHTML('beforebegin',FILA(d.dataset.k,{}));sucio(b)}
+function quitarFila(b){const r=b.closest('.tn'),d=r.closest('.dia');sucio(r);(d._del??=[]).push(r.dataset.orig);r.remove()}
 function zbot(){$('#zant').disabled=ZMIN<=-1;$('#zsig').disabled=ZMAX>=10}
 function masDia(s){
   if(!DIA)return;
@@ -406,7 +426,7 @@ function masDia(s){
 const comp=(k,t)=>{const r=PRG.find(x=>x.fecha==k&&x.turno==t);return !!(r&&r.punto&&r.capitan&&r.territorios)};
 const listo=k=>!esFin(k)&&comp(k,'10:00')&&(turnos(k)===JUE||comp(k,'18:00')||comp(k,'19:00'));
 function marcar(){
-  $d.querySelectorAll('#dias .dia').forEach(d=>{d.classList.toggle('ok',listo(d.dataset.k));d.querySelectorAll('.tn[data-t]').forEach(r=>r.classList.toggle('ok',comp(r.dataset.k,r.dataset.t)))});
+  $d.querySelectorAll('#dias .dia').forEach(d=>{d.classList.toggle('ok',listo(d.dataset.k));if(!esFin(d.dataset.k))d.querySelectorAll('.tn[data-t]').forEach(r=>r.classList.toggle('ok',comp(r.dataset.k,r.dataset.t)))});
 }
 function tarde(){
   $d.querySelectorAll('#dias .dia').forEach(d=>{const k=d.dataset.k;if(esFin(k))return;
@@ -417,6 +437,8 @@ const sucio=el=>{const d=el.closest('.dia');if(d){d.classList.add('sucio');d.que
 $('#dias').addEventListener('input',e=>{if(e.target.matches('input.po'))sucio(e.target)});
 $('#dias').addEventListener('change',e=>{
   sucio(e.target);
+  if(e.target.matches('input.ho'))e.target.closest('.tn').dataset.t=e.target.value;
+  if(e.target.matches('.gr input')&&e.target.checked){const gen=e.target.value=='Grupo General';e.target.closest('.gr').querySelectorAll('input').forEach(c=>{if(c!==e.target&&((c.value=='Grupo General')==!gen||gen))c.checked=false})}
   if(e.target.tagName=='SELECT'&&e.target.getAttribute('aria-label')=='Punto de encuentro'){const i=e.target.parentNode.querySelector('input.po');i.hidden=e.target.value!='__otro';if(!i.hidden)i.focus()}
   const row=e.target.closest('.tn[data-t]');
   if(row&&e.target.tagName=='SELECT'&&e.target.getAttribute('aria-label')=='Capitán'&&e.target.value&&(row.dataset.t=='18:00'||row.dataset.t=='19:00')){
@@ -426,6 +448,7 @@ $('#dias').addEventListener('change',e=>{
 });
 async function guardarDia(b){
   const d=b.closest('.dia'),k=d.dataset.k,filas=[];
+  if(esFin(k))return guardarFin(b,d,k);
   d.querySelectorAll('.tn[data-t]').forEach(e=>{
     if(e.hidden)return;const s=e.querySelectorAll('select'),t=e.dataset.t;
     const f={fecha:k,turno:t,punto:s[0].value=='__otro'?e.querySelector('input.po').value.trim():s[0].value,capitan:s[1].value,territorios:e.dataset.ter||'',nota:e.dataset.nota||''};
@@ -436,6 +459,27 @@ async function guardarDia(b){
   b.disabled=true;
   try{const r=await llamar('guardarLote',{hoja:'Programa',filas});
     if(r.ok){filas.forEach(f=>{const i=PRG.findIndex(x=>x.fecha==k&&x.turno==f.turno);i<0?PRG.push(f):PRG[i]=f});d.classList.remove('sucio');b.textContent='Guardar día';marcar();tarde();toast('✓ Día guardado')}
+    else if(r.error!='ocupado')toast('No se pudo guardar. Intenta de nuevo.',1);
+  }catch(x){toast('No se pudo guardar. Revisa tu internet.',1)}
+  b.disabled=false;
+}
+async function guardarFin(b,d,k){
+  const filas=[],vacias=new Set((d._del||[]).filter(Boolean)),vistos=new Set();
+  for(const e of d.querySelectorAll('.tn.wr')){
+    const t=e.querySelector('input.ho').value,s=e.querySelector('select'),
+      f={fecha:k,turno:t,punto:s.value=='__otro'?e.querySelector('input.po').value.trim():s.value,capitan:[...e.querySelectorAll('.gr input:checked')].map(c=>c.value).join(', '),territorios:e.dataset.ter||'',nota:e.dataset.nota||''};
+    if(e.dataset.orig&&e.dataset.orig!=t)vacias.add(e.dataset.orig);
+    if(!(f.punto||f.capitan||f.territorios))continue;
+    if(!t)return toast('Falta el horario en una de las filas.',1);
+    if(vistos.has(t))return toast('Hay dos filas con el horario '+t+'. Usa horarios distintos.',1);
+    vistos.add(t);filas.push(f);
+  }
+  vistos.forEach(t=>vacias.delete(t));
+  const env=[...filas,...[...vacias].filter(t=>PRG.some(x=>x.fecha==k&&x.turno==t)).map(t=>({fecha:k,turno:t,punto:'',capitan:'',territorios:'',nota:''}))];
+  if(!env.length)return toast('No hay nada que guardar en este día.');
+  b.disabled=true;
+  try{const r=await llamar('guardarLote',{hoja:'Programa',filas:env});
+    if(r.ok){PRG=PRG.filter(x=>x.fecha!=k).concat(filas);d._del=[];d.querySelectorAll('.tn.wr').forEach(e=>e.dataset.orig=e.querySelector('input.ho').value);d.classList.remove('sucio');b.textContent='Guardar día';toast('✓ Día guardado')}
     else if(r.error!='ocupado')toast('No se pudo guardar. Intenta de nuevo.',1);
   }catch(x){toast('No se pudo guardar. Revisa tu internet.',1)}
   b.disabled=false;
@@ -475,20 +519,22 @@ function dtok(){
   if(cf.length&&!confirm('⚠ Territorio repetido en el mismo día:\n\n'+cf.map(([n])=>'• El '+n+' ya está asignado a las '+CONF[n].map(x=>x.t).join(', ')).join('\n')+'\n\n¿Quieres usarlo igual?'))return;
   CUR.dataset.ter=L.map(([n,l])=>n+(l?':'+l:'')).join(';');CUR.querySelector('.s').textContent=terrTxt(CUR.dataset.ter);sucio(CUR);$('#dt').close();
 }
-function pdf(){
+function vistaPrevia(){
   const nt=n=>{const t=TER.find(x=>String(x.numero)==n);return `<b>${esc(n)}</b> ${t?esc(lim(t.zona)):''}`};
   const F=[];
   for(let d=0;d<=10;d++){
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+d));
-    if(esFin(k)){F.push({k,fin:true});continue}
-    turnos(k).forEach(t=>{const r=PRG.find(x=>x.fecha==k&&x.turno==t);if(r&&(r.capitan||r.punto||r.territorios))F.push({k,t,r})});
+    const R=PRG.filter(x=>x.fecha==k&&(x.capitan||x.punto||x.territorios)).sort((a,b)=>a.turno.localeCompare(b.turno));
+    if(esFin(k)){if(R.length)R.forEach(r=>F.push({k,t:r.turno,r}));else F.push({k,fin:true});continue}
+    turnos(k).forEach(t=>{const r=R.find(x=>x.turno==t);if(r)F.push({k,t,r})});
   }
   const W=F.filter(x=>!x.fin);
-  if(!W.length)return alert('Todavía no hay datos en el programa para exportar.');
+  if(!W.length)return alert('Todavía no hay datos en el programa para mostrar.');
   const fc=k=>{const d=new Date(k+'T12:00');return `${DS[d.getDay()]} ${d.getDate()}/${String(d.getMonth()+1).padStart(2,'0')}`};
-  const C=[{t:'Punto de encuentro',f:'punto'},{t:'Capitán',f:'capitan'},{t:'Territorio',f:'territorios'}].filter(c=>W.some(x=>x.r[c.f]));
+  const hs=W.some(x=>x.r.capitan&&!esFin(x.k)),he=W.some(x=>x.r.capitan&&esFin(x.k));
+  const C=[{t:'Punto de encuentro',f:'punto'},{t:he?(hs?'Capitán / Grupo':'Grupo'):'Capitán',f:'capitan'},{t:'Territorio',f:'territorios'}].filter(c=>W.some(x=>x.r[c.f]));
   const cel=(c,r)=>c.f=='territorios'?parseT(r.territorios).map(([n,l])=>`<span class="tc">${nt(n)}${l?` <i>· Manzanas ${l.split('').join(', ')}</i>`:''}</span>`).join('')
-    :c.f=='punto'?(()=>{const p=PUN.find(x=>x.nombre==r.punto);return esc(r.punto)+(p&&p.direccion?`<br><span class="dir">${esc(p.direccion)}</span>`:'')})():`<b>${esc(r[c.f])}</b>`;
+    :c.f=='punto'?(()=>{const p=PUN.find(x=>x.nombre==r.punto);return esc(r.punto)+(p&&p.direccion?`<br><span class="dir">${esc(p.direccion)}</span>`:'')})():`<b>${esc(esFin(r.fecha)?grTxt(r.capitan):r.capitan)}</b>`;
   const G={};F.forEach(x=>(G[x.k]??=[]).push(x));
   let b='';
   Object.keys(G).sort().forEach((k,di)=>G[k].forEach((x,j)=>{
@@ -498,9 +544,39 @@ function pdf(){
   }));
   const ks=Object.keys(G).sort();
   $('#pdf').innerHTML=`<div class="ph"><h1>PROGRAMA DE PREDICACIÓN</h1><h2>CONGREGACIÓN COLLICO</h2><div class="rg">${ks.length>1?fc(ks[0])+' al '+fc(ks[ks.length-1]):fc(ks[0])}</div></div><table><thead><tr><th>Fecha</th><th>Horario</th>${C.map(c=>`<th>${c.t}</th>`).join('')}</tr></thead><tbody>${b}</tbody></table><p class="pie">Generado el ${fechaLarga(f2(hoy))}</p>`;
-  $d.body.classList.add('imp');print();
+  $('#dv').showModal();
 }
-onafterprint=()=>$d.body.classList.remove('imp');
+// Genera una imagen PNG del programa (sin librerías externas)
+function imagen(){
+  return new Promise((ok,mal)=>{
+    const W=720,cl=$('#pdf').cloneNode(true),box=$d.createElement('div');
+    cl.removeAttribute('id');cl.style.cssText='width:'+W+'px;min-width:0;background:#fff;padding:10px;box-sizing:border-box';
+    box.style.cssText='position:fixed;left:-9999px;top:0';box.className='pdfimg';box.appendChild(cl);$d.body.appendChild(box);
+    const css=[...$d.styleSheets].flatMap(s=>{try{return[...s.cssRules]}catch(e){return[]}}).filter(r=>r.selectorText&&r.selectorText.startsWith('#pdf')).map(r=>r.cssText.replace(/#pdf\b/g,'.pdfimg>div')).join('\n');
+    const st=$d.createElement('style');st.textContent=css;$d.head.appendChild(st);
+    const H=Math.ceil(cl.getBoundingClientRect().height);$d.head.removeChild(st);
+    const xml=new XMLSerializer().serializeToString(cl);
+    $d.body.removeChild(box);
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="pdfimg"><style>${css}</style>${xml}</div></foreignObject></svg>`;
+    const im=new Image();
+    im.onload=()=>{const c=$d.createElement('canvas');c.width=W*2;c.height=H*2;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.scale(2,2);x.drawImage(im,0,0);c.toBlob(b=>b?ok(b):mal(new Error('png')),'image/png')};
+    im.onerror=()=>mal(new Error('svg'));
+    im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  });
+}
+async function compartir(btn){
+  btn.disabled=true;
+  try{
+    const blob=await imagen(),f=new File([blob],'programa-predicacion.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){
+      try{await navigator.share({files:[f],title:'Programa de predicación'});btn.disabled=false;return}catch(e){if(e.name=='AbortError'){btn.disabled=false;return}}
+    }
+    const a=$d.createElement('a');a.href=URL.createObjectURL(blob);a.download='programa-predicacion.png';$d.body.appendChild(a);a.click();a.remove();
+    toast('Imagen guardada. Adjúntala en WhatsApp.');
+    window.open('https://wa.me/?text='+encodeURIComponent('Programa de predicación · Congregación Collico'),'_blank');
+  }catch(e){toast('No se pudo crear la imagen.',1)}
+  btn.disabled=false;
+}
 async function tcargar(){
   const filas=$('#tl').value.split('\n').map(l=>l.trim().match(/^(\d+)\s*[-–.:,;\t ]\s*(.+)$/)).filter(Boolean).map(m=>({numero:m[1],zona:lim(m[2])}));
   if(!filas.length)return alert('No encontré líneas con número y nombre.');
