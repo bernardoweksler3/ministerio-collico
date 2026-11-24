@@ -355,8 +355,8 @@ function pdf(){
     :c.f=='punto'?(()=>{const p=PUN.find(x=>x.nombre==r.punto);return esc(r.punto)+(p&&p.direccion?`<br><span class="dir">${esc(p.direccion)}</span>`:'')})():`<b>${esc(r[c.f])}</b>`;
   const G={};F.forEach(x=>(G[x.k]??=[]).push(x));
   let i=0,b='';
-  Object.keys(G).sort().forEach(k=>G[k].forEach((x,j)=>{
-    b+=`<tr class="${i++%2?'':'am'}${j==0?' nd':''}">${j==0?`<td class="f" rowspan="${G[k].length}">${fc(k)}</td>`:''}<td><span class="hr">${x.t}</span></td>${C.map(c=>`<td>${cel(c,x.r)}</td>`).join('')}</tr>`;
+  Object.keys(G).sort().forEach((k,di)=>G[k].forEach((x,j)=>{
+    b+=`<tr class="${di%2?'':'am'}${j==0?' nd':''}">${j==0?`<td class="f" rowspan="${G[k].length}">${fc(k)}</td>`:''}<td><span class="hr">${x.t}</span></td>${C.map(c=>`<td>${cel(c,x.r)}</td>`).join('')}</tr>`;
   }));
   const ks=Object.keys(G).sort();
   $('#pdf').innerHTML=`<div class="ph"><h1>PROGRAMA DE PREDICACIÓN</h1><h2>CONGREGACIÓN COLLICO</h2><div class="rg">${ks.length>1?fc(ks[0])+' al '+fc(ks[ks.length-1]):fc(ks[0])}</div></div><table><thead><tr><th>Fecha</th><th>Horario</th>${C.map(c=>`<th>${c.t}</th>`).join('')}</tr></thead><tbody>${b}</tbody></table><p class="pie">Generado el ${fechaLarga(f2(hoy))}</p>`;
