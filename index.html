@@ -93,6 +93,15 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 .rec{display:flex;align-items:center;gap:8px;font-weight:400}
 .rec input{width:auto}
 .av{color:var(--pel);font-size:13px;font-weight:600;margin-left:6px}
+.ult{color:var(--mu);font-size:13px}
+.of .ac{flex:1 1 100%;display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.of .nm{flex:1 1 90px;font-weight:600}
+.of .md{flex:0 0 auto;color:var(--mu);font-size:14px}
+.of button{padding:5px 10px;font-size:14px}
+.dia.fin h3{background:var(--w);color:#fff}
+.tr label{flex:1}
+.tr label small{display:block;margin-left:28px}
+#dts{flex:1 1 160px}#dto{flex:1 1 160px}
 .dia.sucio{border-color:#e0a100}
 .dia.sucio h3{background:#e0a100;color:#1b1b1b}
 .dia.sucio h3::after{content:'  · cambios sin guardar'}
@@ -116,6 +125,7 @@ footer a{color:var(--mu);cursor:pointer}
 #pdf .tc b{display:inline-block;min-width:20px;color:#14465e}
 #pdf .tc i{color:#3d5666;font-style:normal;font-size:10.5px}
 #pdf .dir{color:#5b6a76;font-size:10.5px}
+#pdf td.fn{font-style:italic;color:#3d5666;text-align:center}
 #pdf .pie{margin:6px 0 0;text-align:center;color:#6b7a82;font-size:9.5px}
 @page{size:A4;margin:8mm}
 @media print{main{zoom:1}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{background:#fff}header,.tabs,footer,.noimp{display:none}main{max-width:none;padding:0}main>section{border:0;box-shadow:none;padding:0}.dia{break-inside:avoid}body.imp header,body.imp main{display:none}body.imp #pdf{display:block}}
@@ -130,6 +140,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
 <main>
 <nav class="tabs">
   <button data-v="cap" onclick="ir('cap')">Capitanes de Grupo</button>
+  <button data-v="ofr" onclick="ir('ofr')">Ofrecimientos</button>
   <button data-v="pto" onclick="ir('pto')">Puntos de encuentro</button>
   <button data-v="ter" onclick="ir('ter')">Territorios</button>
   <button data-v="prog" onclick="ir('prog')">Programa</button>
@@ -149,7 +160,12 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
   <div id="md" class="chips"></div>
   <p><button id="env" onclick="enviar()">Enviar disponibilidad</button></p>
   <div id="ok"></div>
-  <div id="admin"></div>
+</section>
+
+<section id="ofr" hidden>
+  <h1>Ofrecimientos</h1>
+  <p class="mu">Personas que se ofrecieron como capitanes, de hoy en adelante. Elige quién será capitán de cada horario.</p>
+  <div id="lofr"></div>
   <p class="so" hidden><button class="pel" onclick="borrarTodo('Inscripciones','todos los ofrecimientos')">Borrar todo</button></p>
 </section>
 
@@ -161,6 +177,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
     <textarea id="tl" rows="8"></textarea>
     <p><button onclick="tcargar()">Cargar territorios</button></p>
   </details>
+  <input id="tbus" class="noimp" placeholder="Buscar territorio por número o nombre" aria-label="Buscar territorio" oninput="tfiltro()">
   <div id="lter"></div>
   <p class="so" hidden><button class="pel" onclick="borrarTodo('Territorios','todos los territorios')">Borrar todo</button></p>
 </section>
@@ -216,6 +233,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
 <dialog id="dt">
   <h2>Territorios</h2>
   <p>Marca los territorios y, si corresponde, escribe las letras de las manzanas (A, B, C…).</p>
+  <div class="tn"><input id="dts" placeholder="Buscar por número o nombre" aria-label="Buscar territorio" oninput="filtrarT()"><select id="dto" aria-label="Orden" onchange="rendT(leerDlg())"><option value="n">Ordenar por número</option><option value="a">Más tiempo sin trabajar primero</option></select></div>
   <div id="dtl"></div>
   <p><button onclick="dtok()">Aceptar</button> <button class="s" onclick="$('#dt').close()">Cancelar</button></p>
 </dialog>
@@ -265,7 +283,7 @@ function ir(v){
   $d.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
   $d.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
   $('#pie').textContent=U?'Acceso ('+U+')':'Acceso';
-  ({cap:pub,pto:()=>lista('Puntos','#lpto'),ter:()=>lista('Territorios','#lter'),prog,acc:vacc,est})[v]();
+  ({cap:pub,ofr:cap,pto:()=>lista('Puntos','#lpto'),ter:()=>lista('Territorios','#lter'),prog,acc:vacc,est})[v]();
 }
 function salir(forzado){
   U=K=R='';olvidar();DEST='cap';
@@ -319,7 +337,7 @@ let LST={};
 const edHtml=(f,h,nuevo)=>'<div class="tn">'+CAMPOS[h].map(([c,t])=>`<input placeholder="${t}" aria-label="${t}" data-c="${c}" value="${esc(f[c])}">`).join('')+
   `<button onclick="gfila(this,'${h}')">${nuevo?'Agregar':'Guardar'}</button>${nuevo?'':`<button class="s" onclick="cancelar(this,'${h}')">Cancelar</button>`}</div>`;
 const vista=(f,h)=>'<div class="tn ro">'+CAMPOS[h].map(([c],i)=>f[c]?(i==0?`<b class="p1">${esc(f[c])}</b>`:`<span>${esc(f[c])}</span>`):'').join('')+
-  `<button class="s" onclick="editar(this,'${h}')">Editar</button><button class="pel" onclick="bfila(this,'${h}')">Borrar</button></div>`;
+  (h=='Territorios'?`<span class="ult">${esc(hace(ultima(f.numero)))}</span>`:'')+`<button class="s" onclick="editar(this,'${h}')">Editar</button><button class="pel" onclick="bfila(this,'${h}')">Borrar</button></div>`;
 async function lista(h,sel){
   const box=$(sel);box.textContent='Cargando…';
   let L;try{L=await llamar('listar',{hoja:h})}catch(e){box.textContent='No se pudo cargar.';return}
@@ -329,6 +347,7 @@ async function lista(h,sel){
     const sucio=L.filter(x=>lim(x.zona)!=x.zona);
     if(sucio.length){await llamar('territoriosCargar',{filas:sucio.map(x=>({numero:x.numero,zona:lim(x.zona)}))});sucio.forEach(x=>x.zona=lim(x.zona))}
   }
+  if(h=='Territorios'){const P=await llamar('listar',{hoja:'Programa'});if(Array.isArray(P))PRG=P}
   LST[h]=L;
   box.innerHTML=(L.length?L.map(f=>`<div class="dia" data-id="${esc(f.id)}">${vista(f,h)}</div>`).join(''):'<p>Aún no hay registros.</p>')+'<h3>Agregar nuevo</h3><div class="dia" data-id="">'+edHtml({},h,true)+'</div>';
 }
@@ -348,22 +367,26 @@ const terrTxt=s=>{const L=parseT(s);return L.length?'Terr.: '+L.map(([n,l])=>n+(
 const opc=(L,v,ph)=>`<select aria-label="${ph}"><option value="">${ph}</option>`+(v&&!L.includes(v)?[...L,v]:L).map(x=>`<option${x==v?' selected':''}>${esc(x)}</option>`).join('')+'</select>';
 async function prog(){
   const box=$('#dias');box.textContent='Cargando…';
-  let P,Q,N,R;try{[P,Q,N,R]=await Promise.all(['Programa','Puntos','Nombres','Territorios'].map(hoja=>llamar('listar',{hoja})))}catch(e){box.textContent='No se pudo cargar el programa.';return}
-  if(![P,Q,N,R].every(Array.isArray))return;
+  let P,Q,N,R,I;try{[P,Q,N,R,I]=await Promise.all(['Programa','Puntos','Nombres','Territorios','Inscripciones'].map(hoja=>llamar('listar',{hoja})))}catch(e){box.textContent='No se pudo cargar el programa.';return}
+  if(![P,Q,N,R,I].every(Array.isArray))return;
+  const OFR={};I.forEach(x=>(OFR[x.fecha+'|'+x.turno]??=new Set()).add(x.nombre));
   PRG=P;PUN=Q;TER=R.sort((a,b)=>a.numero-b.numero);
   const pu=Q.map(x=>x.nombre),na=N.map(x=>x.nombre).sort();let h='';
+  const opcCap=(k,t,v)=>{const of=[...(OFR[k+'|'+t]||[])].filter(n=>na.includes(n)).sort(),otros=na.filter(n=>!of.includes(n)),o=x=>`<option${x==v?' selected':''}>${esc(x)}</option>`;
+    return `<select aria-label="Capitán"><option value="">Capitán</option>${of.length?`<optgroup label="Se ofrecieron">${of.map(o).join('')}</optgroup>`:''}${otros.length?`<optgroup label="${of.length?'Otros':'Todos'}">${otros.map(o).join('')}</optgroup>`:''}${v&&!na.includes(v)?o(v):''}</select>`};
   for(let z=-1;z<=10;z++){
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+z));
+    if(esFin(k)){h+=`<div class="dia fin" data-k="${k}"><h3>${fechaLarga(k)}</h3><div class="tn"><span class="mu">Arreglo por Grupo de Servicio</span></div></div>`;continue}
     h+=`<div class="dia" data-k="${k}"><h3>${fechaLarga(k)}</h3>`;
     for(const t of turnos(k)){
       const r=P.find(x=>x.fecha==k&&x.turno==t)||{};
-      h+=`<div class="tn" data-k="${k}" data-t="${t}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><b>${t}</b>${opc(pu,r.punto,'Punto de encuentro')}${opc(na,r.capitan,'Capitán')}<button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button></div>`}
+      h+=`<div class="tn" data-k="${k}" data-t="${t}" data-ter="${esc(r.territorios)}" data-nota="${esc(r.nota)}"><b>${t}</b>${opc(pu,r.punto,'Punto de encuentro')}${opcCap(k,t,r.capitan)}<button class="s" onclick="abrirT(this)">${esc(terrTxt(r.territorios))}</button></div>`}
     h+='<div class="tn gd"><button onclick="guardarDia(this)">Guardar día</button></div></div>';
   }
   box.innerHTML=h;marcar();tarde();
 }
 const comp=(k,t)=>{const r=PRG.find(x=>x.fecha==k&&x.turno==t);return !!(r&&r.punto&&r.capitan&&r.territorios)};
-const listo=k=>esFin(k)?FIN.every(t=>comp(k,t)):comp(k,'10:00')&&(comp(k,'18:00')||comp(k,'19:00'));
+const listo=k=>!esFin(k)&&comp(k,'10:00')&&(comp(k,'18:00')||comp(k,'19:00'));
 function marcar(){
   $d.querySelectorAll('#dias .dia').forEach(d=>{d.classList.toggle('ok',listo(d.dataset.k));d.querySelectorAll('.tn[data-t]').forEach(r=>r.classList.toggle('ok',comp(r.dataset.k,r.dataset.t)))});
 }
@@ -373,7 +396,14 @@ function tarde(){
     a.hidden=!cp('18:00')&&!!cp('19:00');b.hidden=!cp('19:00')&&!!cp('18:00')});
 }
 const sucio=el=>{const d=el.closest('.dia');if(d){d.classList.add('sucio');d.querySelector('.gd button').textContent='Guardar día'}};
-$('#dias').addEventListener('change',e=>sucio(e.target));
+$('#dias').addEventListener('change',e=>{
+  sucio(e.target);
+  const row=e.target.closest('.tn[data-t]');
+  if(row&&e.target.tagName=='SELECT'&&e.target.getAttribute('aria-label')=='Capitán'&&e.target.value&&(row.dataset.t=='18:00'||row.dataset.t=='19:00')){
+    const o=row.closest('.dia').querySelector(`.tn[data-t="${row.dataset.t=='18:00'?'19:00':'18:00'}"]`);
+    if(o&&!o.hidden&&o.querySelectorAll('select')[1].value){e.target.value='';toast('Ya hay capitán a las '+o.dataset.t+'. Por la tarde solo se elige uno.',1)}
+  }
+});
 async function guardarDia(b){
   const d=b.closest('.dia'),k=d.dataset.k,filas=[];
   d.querySelectorAll('.tn[data-t]').forEach(e=>{
@@ -381,6 +411,7 @@ async function guardarDia(b){
     const f={fecha:k,turno:t,punto:s[0].value,capitan:s[1].value,territorios:e.dataset.ter||'',nota:e.dataset.nota||''};
     if(PRG.some(x=>x.fecha==k&&x.turno==t)||f.punto||f.capitan||f.territorios)filas.push(f);
   });
+  if(filas.some(f=>f.turno=='18:00'&&f.capitan)&&filas.some(f=>f.turno=='19:00'&&f.capitan))return toast('Por la tarde solo puede haber un capitán: elige 18:00 o 19:00.',1);
   if(!filas.length)return toast('No hay nada que guardar en este día.');
   b.disabled=true;
   try{const r=await llamar('guardarLote',{hoja:'Programa',filas});
@@ -391,11 +422,31 @@ async function guardarDia(b){
 }
 let CONF={};
 const solapa=(a,b)=>!a||!b||[...a].some(c=>b.includes(c));
+const FM=k=>{const d=new Date(k+'T12:00');return d.getDate()+'/'+String(d.getMonth()+1).padStart(2,'0')};
+function ultima(n){let b='';const hk=f2(hoy);PRG.forEach(x=>{if(x.fecha<=hk&&x.fecha>b&&parseT(x.territorios).some(([m])=>m==String(n)))b=x.fecha});return b}
+function hace(k){if(!k)return 'sin registro de trabajo';const dd=Math.round((new Date(f2(hoy)+'T12:00')-new Date(k+'T12:00'))/864e5);return 'Último: '+FM(k)+' ('+(dd==0?'hoy':dd==1?'ayer':'hace '+dd+' días')+')'}
+const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+function leerDlg(){const m={};$d.querySelectorAll('#dtl .tr').forEach(r=>{const c=r.querySelector('[type=checkbox]');if(c.checked)m[c.dataset.n]=r.querySelector('.l').value});return m}
+function rendT(m){
+  const L=TER.map(x=>({x,u:ultima(x.numero)}));
+  if($('#dto').value=='a')L.sort((a,b)=>(a.u||'0000').localeCompare(b.u||'0000')||a.x.numero-b.x.numero);
+  $('#dtl').innerHTML=L.length?L.map(({x,u})=>{const n=String(x.numero);
+    return `<div class="tr"><label><input type="checkbox" data-n="${esc(n)}"${n in m?' checked':''}> ${esc(n)} ${esc(lim(x.zona))}${n in CONF?` <span class="av">⚠ ya está a las ${CONF[n].map(z=>z.t).join(', ')}</span>`:''}<small class="ult">${esc(hace(u))}</small></label><input class="l" placeholder="Letras" aria-label="Letras de las manzanas del territorio ${esc(n)}" value="${esc(m[n]||'')}" oninput="this.parentNode.querySelector('[type=checkbox]').checked=true"></div>`}).join(''):'<p>Aún no hay territorios. Cárgalos en la pestaña Territorios.</p>';
+  filtrarT();
+}
+function filtrarT(){
+  const q=norm($('#dts').value.trim());
+  $d.querySelectorAll('#dtl .tr').forEach(r=>{r.hidden=!!q&&!r.querySelector('[type=checkbox]').checked&&!norm(r.querySelector('label').textContent).includes(q)});
+}
+function tfiltro(){
+  const q=norm($('#tbus').value.trim());
+  $d.querySelectorAll('#lter .dia[data-id]').forEach(r=>{if(r.dataset.id)r.hidden=!!q&&!norm(r.textContent).includes(q)});
+}
 function abrirT(b){
-  CUR=b.closest('.tn');const m=Object.fromEntries(parseT(CUR.dataset.ter));
+  CUR=b.closest('.tn');
   CONF={};$d.querySelectorAll(`#dias .tn[data-k="${CUR.dataset.k}"]`).forEach(e=>{if(e===CUR||e.hidden)return;parseT(e.dataset.ter).forEach(([n,l])=>(CONF[n]??=[]).push({t:e.dataset.t,l}))});
-  $('#dtl').innerHTML=TER.length?TER.map(x=>{const n=String(x.numero);
-    return `<div class="tr"><label><input type="checkbox" data-n="${esc(n)}"${n in m?' checked':''}> ${esc(n)} ${esc(lim(x.zona))}${n in CONF?` <span class="av">⚠ ya está a las ${CONF[n].map(z=>z.t).join(', ')}</span>`:''}</label><input class="l" placeholder="Letras" aria-label="Letras de las manzanas del territorio ${esc(n)}" value="${esc(m[n]||'')}" oninput="this.parentNode.querySelector('[type=checkbox]').checked=true"></div>`}).join(''):'<p>Aún no hay territorios. Cárgalos en la pestaña Territorios.</p>';
+  $('#dts').value='';$('#dto').value='n';
+  rendT(Object.fromEntries(parseT(CUR.dataset.ter)));
   $('#dt').showModal();
 }
 function dtok(){
@@ -409,17 +460,21 @@ function pdf(){
   const F=[];
   for(let d=0;d<=10;d++){
     const k=f2(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()+d));
+    if(esFin(k)){F.push({k,fin:true});continue}
     turnos(k).forEach(t=>{const r=PRG.find(x=>x.fecha==k&&x.turno==t);if(r&&(r.capitan||r.punto||r.territorios))F.push({k,t,r})});
   }
-  if(!F.length)return alert('Todavía no hay datos en el programa para exportar.');
+  const W=F.filter(x=>!x.fin);
+  if(!W.length)return alert('Todavía no hay datos en el programa para exportar.');
   const fc=k=>{const d=new Date(k+'T12:00');return `${DS[d.getDay()]} ${d.getDate()}/${String(d.getMonth()+1).padStart(2,'0')}`};
-  const C=[{t:'Punto de encuentro',f:'punto'},{t:'Capitán',f:'capitan'},{t:'Territorio',f:'territorios'}].filter(c=>F.some(x=>x.r[c.f]));
+  const C=[{t:'Punto de encuentro',f:'punto'},{t:'Capitán',f:'capitan'},{t:'Territorio',f:'territorios'}].filter(c=>W.some(x=>x.r[c.f]));
   const cel=(c,r)=>c.f=='territorios'?parseT(r.territorios).map(([n,l])=>`<span class="tc">${nt(n)}${l?` <i>· Manzanas ${l.split('').join(', ')}</i>`:''}</span>`).join('')
     :c.f=='punto'?(()=>{const p=PUN.find(x=>x.nombre==r.punto);return esc(r.punto)+(p&&p.direccion?`<br><span class="dir">${esc(p.direccion)}</span>`:'')})():`<b>${esc(r[c.f])}</b>`;
   const G={};F.forEach(x=>(G[x.k]??=[]).push(x));
-  let i=0,b='';
+  let b='';
   Object.keys(G).sort().forEach((k,di)=>G[k].forEach((x,j)=>{
-    b+=`<tr class="${di%2?'':'am'}${j==0?' nd':''}">${j==0?`<td class="f" rowspan="${G[k].length}">${fc(k)}</td>`:''}<td><span class="hr">${x.t}</span></td>${C.map(c=>`<td>${cel(c,x.r)}</td>`).join('')}</tr>`;
+    const cl=`${di%2?'':'am'}${j==0?' nd':''}`;
+    b+=x.fin?`<tr class="${cl}"><td class="f">${fc(k)}</td><td class="fn" colspan="${1+C.length}">Arreglo por Grupo de Servicio</td></tr>`
+      :`<tr class="${cl}">${j==0?`<td class="f" rowspan="${G[k].length}">${fc(k)}</td>`:''}<td><span class="hr">${x.t}</span></td>${C.map(c=>`<td>${cel(c,x.r)}</td>`).join('')}</tr>`;
   }));
   const ks=Object.keys(G).sort();
   $('#pdf').innerHTML=`<div class="ph"><h1>PROGRAMA DE PREDICACIÓN</h1><h2>CONGREGACIÓN COLLICO</h2><div class="rg">${ks.length>1?fc(ks[0])+' al '+fc(ks[ks.length-1]):fc(ks[0])}</div></div><table><thead><tr><th>Fecha</th><th>Horario</th>${C.map(c=>`<th>${c.t}</th>`).join('')}</tr></thead><tbody>${b}</tbody></table><p class="pie">Generado el ${fechaLarga(f2(hoy))}</p>`;
@@ -458,7 +513,7 @@ async function pub(){
   try{const r=await llamar('publico');NM=r.nombres||[];OC=new Map((r.ocupados||[]).map(x=>[x.fecha+'|'+x.turno,x.capitan]))}catch(e){}
   const s=$('#nombre'),v=s.value;
   s.innerHTML='<option value="">'+(NM.length?'Elige tu nombre':'Aún no hay nombres en la lista')+'</option>'+NM.map(n=>`<option>${esc(n)}</option>`).join('');
-  s.value=v;dib();cap();
+  s.value=v;dib();
 }
 function dib(){
   $('#cmes').textContent=MESES[C.m]+' '+C.y;
@@ -484,23 +539,24 @@ async function enviar(){
     if(r.error)o.textContent=r.error=='ocupado'?'Hay mucha gente enviando. Intenta de nuevo en unos segundos.':'Error: '+r.error;
     else{const n=r.nuevos??filas.length,rp=r.repetidos||0;
       o.textContent='¡Listo! '+(n?'Se '+(n>1?'enviaron '+n+' ofrecimientos':'envió 1 ofrecimiento')+'.':'No se agregó nada nuevo.')+(rp?' Ya tenías '+rp+(rp>1?' enviados antes':' enviado antes')+', no se repitieron.':'');
-      S={};MS.clear();$('#nombre').value='';dib();pub()}
+      S={};MS.clear();INFO='';$('#nombre').value='';dib();pub()}
   }catch(x){o.textContent='No se pudo enviar. Revisa tu internet e intenta de nuevo.'}
   b.disabled=false;
 }
 async function cap(){
-  const a=$('#admin');a.innerHTML='';if(!U)return;
+  const a=$('#lofr');a.innerHTML='';if(!U)return;
   try{
     const [I,P]=await Promise.all([llamar('listar',{hoja:'Inscripciones'}),llamar('listar',{hoja:'Programa'})]);
     if(!Array.isArray(I))return;
     const cd=(f,t)=>((P.find(x=>x.fecha==f&&x.turno==t)||{}).capitan||'').trim();
     const vs=new Set(),g={};I.filter(x=>{const q=x.fecha+'|'+x.turno+'|'+x.nombre;return x.fecha>=f2(hoy)&&!vs.has(q)&&vs.add(q)}).forEach(x=>((g[x.fecha]??={})[x.turno]??=[]).push(x));
     const fs=Object.keys(g).sort();
-    a.innerHTML='<h2>Inscritos</h2>'+(fs.map((f,i)=>`<div class="fd c${i%2}"><h3>${fechaLarga(f)}</h3>`+Object.keys(g[f]).sort().map(t=>{
+    const tot=fs.reduce((s,f)=>s+Object.values(g[f]).reduce((q,l)=>q+l.length,0),0);
+    a.innerHTML=(tot?`<p class="mu">${tot} ofrecimiento${tot>1?'s':''} en ${fs.length} día${fs.length>1?'s':''}.</p>`:'')+(fs.map((f,i)=>`<div class="fd c${i%2}"><h3>${fechaLarga(f)}</h3>`+Object.keys(g[f]).sort().map(t=>{
       const cp=cd(f,t),o=t=='18:00'?'19:00':t=='19:00'?'18:00':'',cub=!cp&&o&&turnos(f)===SEM&&cd(f,o);
       return `<div class="tn"><b>${t}</b><span>${cp?'Capitán: '+esc(cp):cub?'Ya hay capitán en el otro horario de la tarde':'Sin capitán'}</span>${cp?`<button class="s" data-f="${f}" data-t="${t}" onclick="elegir(this,1)">Cancelar elección</button>`:''}</div>`+
         g[f][t].map(x=>{const d=`data-f="${f}" data-t="${t}" data-n="${esc(x.nombre)}"`;
-          return `<div class="tn of"><span>${esc(x.nombre)}</span><span>${esc(x.modalidad)}</span>`+(cp==x.nombre?'<span>✓ Elegido</span>':(cp||cub?'':`<button ${d} onclick="elegir(this)">Elegir capitán</button>`)+`<button class="s" ${d} aria-label="Eliminar ofrecimiento" title="Eliminar ofrecimiento" onclick="quitar(this)">🗑</button>`)+'</div>'}).join('');
+          return `<div class="tn of"><span class="nm">${esc(x.nombre)}</span><span class="md">${esc(String(x.modalidad||'').replace('Casa en casa','Casa').replace('Por Zoom','Zoom'))}</span><span class="ac">`+(cp==x.nombre?'<span>✓ Elegido</span>':(cp||cub?'':`<button ${d} onclick="elegir(this)">Elegir capitán</button>`)+`<button class="s" ${d} aria-label="Eliminar ofrecimiento" title="Eliminar ofrecimiento" onclick="quitar(this)">🗑</button>`)+'</span></div>'}).join('');
     }).join('')+'</div>').join('')||'<p>No hay ofrecimientos desde hoy en adelante.</p>');
   }catch(e){a.textContent='No se pudo cargar la lista.'}
 }
@@ -530,6 +586,8 @@ async function elegir(b,cancelar){
     cap();
   }catch(e){b.disabled=false;alert('No se pudo guardar.')}
 }
+const DIA0=f2(hoy);
+$d.addEventListener('visibilitychange',()=>{if(!$d.hidden&&f2(new Date())!=DIA0)location.reload()});
 ico();ir('cap');
 </script>
 </body>
