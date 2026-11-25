@@ -51,6 +51,8 @@ summary{cursor:pointer;font-weight:600;color:var(--az);margin:6px 0}
 .tabs{display:flex;gap:4px;overflow-x:auto;margin-bottom:12px;background:var(--card);padding:4px;border-radius:12px;border:1px solid var(--bd);box-shadow:var(--sh)}
 .tabs button{flex:1 0 auto;background:transparent;color:var(--mu);border:0;padding:8px 12px;font-size:15px}
 .tabs button.on{background:var(--ac);color:#fff}
+.pin{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;margin-left:7px;border-radius:10px;background:#e53935;color:#fff;font-size:11.5px;font-weight:700;line-height:1;vertical-align:1px;box-shadow:0 0 0 2px var(--card)}
+.tabs button.on .pin{box-shadow:0 0 0 2px var(--ac)}
 .dia,.fd{border:1px solid var(--bd);border-radius:10px;margin:10px 0;overflow:hidden}
 .dia h3{padding:7px 12px;background:var(--az2);font-size:15px}
 .fd h3{padding:7px 12px;font-size:15px;background:var(--az);color:var(--card)}
@@ -193,7 +195,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
 <main>
 <nav class="tabs">
   <button data-v="cap" onclick="ir('cap')">Capitanes de Grupo</button>
-  <button data-v="ofr" onclick="ir('ofr')">Ofrecimientos</button>
+  <button data-v="ofr" onclick="ir('ofr')">Ofrecimientos<span class="pin" id="pin" hidden></span></button>
   <button data-v="pto" onclick="ir('pto')">Puntos de encuentro</button>
   <button data-v="ter" onclick="ir('ter')">Territorios</button>
   <button data-v="prog" onclick="ir('prog')">Programa</button>
@@ -355,7 +357,7 @@ const LECT=['listar','publico','login'];
 const llamar=(a,d={})=>{
   PEND++;carga(LECT.includes(a)?'Cargando…':'Guardando…');
   return fetch(URL_SCRIPT,{method:'POST',body:JSON.stringify({a,u:U,c:K,...d})}).then(r=>r.json())
-    .then(r=>{if(r.error=='acceso'&&a!='login')salir(true);if(r.error=='cambiar'&&a!='clavePropia')pedirClave();if(r.error=='ocupado')toast('Hay mucha gente guardando. Intenta de nuevo en unos segundos.',1);return r})
+    .then(r=>{if(!LECT.includes(a)&&r.ok)setTimeout(()=>badge(true),600);if(r.error=='acceso'&&a!='login')salir(true);if(r.error=='cambiar'&&a!='clavePropia')pedirClave();if(r.error=='ocupado')toast('Hay mucha gente guardando. Intenta de nuevo en unos segundos.',1);return r})
     .finally(()=>{if(--PEND<=0){PEND=0;carga('')}});
 };
 const FZ=[.9,1,1.15,1.3,1.5];
@@ -378,6 +380,7 @@ function ir(v){
   $d.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
   $('#pie').innerHTML=(U?ICO_USR:ICO_IN)+'<span>'+esc(U?'Acceso ('+U+')':'Acceso')+'</span>';
   ({cap:pub,ofr:cap,pto:()=>lista('Puntos','#lpto'),ter:()=>sub(ST),prog,acc:vacc,est})[v]();
+  badge();
 }
 function salir(forzado){
   U=K=R='';olvidar();DEST='cap';
@@ -1026,6 +1029,25 @@ async function elegir(b,cancelar){
     cap();
   }catch(e){b.disabled=false;alert('No se pudo guardar.')}
 }
+/* Globo rojo en Ofrecimientos: cuántos ofrecimientos siguen sin capitán confirmado (solo con usuario) */
+let PIN_T=0;
+async function badge(forzar){
+  const p=$('#pin');
+  if(!U){p.hidden=true;p.textContent='';return}
+  if(!forzar&&Date.now()-PIN_T<10000)return;
+  PIN_T=Date.now();
+  try{
+    const pedir=hoja=>fetch(URL_SCRIPT,{method:'POST',body:JSON.stringify({a:'listar',u:U,c:K,hoja})}).then(r=>r.json());
+    const [I,P]=await Promise.all([pedir('Inscripciones'),pedir('Programa')]);
+    if(!U||!Array.isArray(I)||!Array.isArray(P))return;
+    const conCap=new Set(P.filter(x=>String(x.capitan||'').trim()).map(x=>x.fecha+'|'+x.turno)),h0=f2(new Date());
+    const n=I.filter(x=>x.fecha>=h0&&!conCap.has(x.fecha+'|'+x.turno)).length;
+    p.textContent=n>99?'99+':String(n);p.hidden=!n;
+    p.title=p.ariaLabel=n+(n==1?' ofrecimiento sin confirmar':' ofrecimientos sin confirmar');
+  }catch(e){}
+}
+setInterval(()=>{if(U&&!$d.hidden)badge(true)},90000);
+$d.addEventListener('visibilitychange',()=>{if(!$d.hidden&&U)badge(true)});
 const DIA0=f2(hoy);
 $d.addEventListener('visibilitychange',()=>{if(!$d.hidden&&f2(new Date())!=DIA0)location.reload()});
 ico();ir('cap');
