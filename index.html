@@ -1029,7 +1029,7 @@ async function elegir(b,cancelar){
     cap();
   }catch(e){b.disabled=false;alert('No se pudo guardar.')}
 }
-/* Globo rojo en Ofrecimientos: cuántos ofrecimientos siguen sin capitán confirmado (solo con usuario) */
+/* Globo rojo en Ofrecimientos: cuántos ofrecimientos de hoy en adelante no están confirmados (solo con usuario) */
 let PIN_T=0;
 async function badge(forzar){
   const p=$('#pin');
@@ -1040,8 +1040,8 @@ async function badge(forzar){
     const pedir=hoja=>fetch(URL_SCRIPT,{method:'POST',body:JSON.stringify({a:'listar',u:U,c:K,hoja})}).then(r=>r.json());
     const [I,P]=await Promise.all([pedir('Inscripciones'),pedir('Programa')]);
     if(!U||!Array.isArray(I)||!Array.isArray(P))return;
-    const conCap=new Set(P.filter(x=>String(x.capitan||'').trim()).map(x=>x.fecha+'|'+x.turno)),h0=f2(new Date());
-    const n=I.filter(x=>x.fecha>=h0&&!conCap.has(x.fecha+'|'+x.turno)).length;
+    const conf=new Set(P.filter(x=>String(x.capitan||'').trim()).map(x=>x.fecha+'|'+x.turno+'|'+String(x.capitan).trim())),h0=f2(new Date());
+    const n=I.filter(x=>x.fecha>=h0&&!conf.has(x.fecha+'|'+x.turno+'|'+String(x.nombre).trim())).length;
     p.textContent=n>99?'99+':String(n);p.hidden=!n;
     p.title=p.ariaLabel=n+(n==1?' ofrecimiento sin confirmar':' ofrecimientos sin confirmar');
   }catch(e){}
