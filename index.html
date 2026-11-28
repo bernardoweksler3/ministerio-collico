@@ -402,12 +402,14 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const ICO_IN='<svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>',
   ICO_USR='<svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>';
 function ir(v){
+  if(R=='precursor'&&v!='prec'&&v!='acc')v='prec';
   if(!U&&v!='cap'&&v!='acc'&&v!='prec'){DEST=v;NOTA='Esta sección requiere acceso. Ingresa con tu usuario y contraseña.';v='acc'}
   V=v;
   $d.querySelectorAll('.so').forEach(e=>e.hidden=R!='admin');
+  $('.pa').hidden=R!='admin'&&R!='precursor';
   {const ok=R=='admin';$('#s13f').disabled=$('#s13b').disabled=!ok;$('#s13n').hidden=ok}
   $d.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
-  $d.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
+  $d.querySelectorAll('.tabs button').forEach(b=>{b.hidden=R=='precursor'&&b.dataset.v!='prec';b.classList.toggle('on',b.dataset.v==v)});
   $('#pie').innerHTML=(U?ICO_USR:ICO_IN)+'<span>'+esc(U?'Acceso ('+U+')':'Acceso')+'</span>';
   ({cap:pub,ofr:cap,pto:()=>lista('Puntos','#lpto'),ter:()=>sub(ST),prog,acc:vacc,est,prec:vprec})[v]();
   badge();
@@ -1043,7 +1045,7 @@ let PREC=[],PVER='';
 async function vprec(){
   const f=$('#fprec');if(!f.getAttribute('src'))f.src='precursor.html?i=1';
   const a=$('#lprec');
-  if(R!='admin'){a.innerHTML='';PVER='';return}
+  if(R!='admin'&&R!='precursor'){a.innerHTML='';PVER='';return}
   try{
     const L=await llamar('listar',{hoja:'Precursores'});
     if(Array.isArray(L)){PREC=L;precDib()}
@@ -1052,7 +1054,7 @@ async function vprec(){
 const precFin=x=>x.archivado=='si',precRes=x=>(x.aprobado=='si'||x.aprobado=='no')&&x.archivado!='si',precApr=x=>x.aprobado=='si'&&x.archivado!='si';
 function precVer(v){PVER=PVER==v?'':v;precDib()}
 function precDib(){
-  if(R!='admin'){$('#lprec').innerHTML='';return}
+  if(R!='admin'&&R!='precursor'){$('#lprec').innerHTML='';return}
   const pe=PREC.filter(x=>!precFin(x)),hi=PREC.filter(precFin);
   const np=pe.filter(x=>x.aprobado!='si'&&x.aprobado!='no').length;
   $('#pb1').textContent='Ver solicitudes'+(np?` (${np})`:'');
@@ -1159,7 +1161,7 @@ async function elegir(b,cancelar){
 let PIN_T=0;
 async function badge(forzar){
   const p=$('#pin');
-  if(!U){p.hidden=true;p.textContent='';return}
+  if(!U||R=='precursor'){p.hidden=true;p.textContent='';return}
   if(!forzar&&Date.now()-PIN_T<10000)return;
   PIN_T=Date.now();
   try{
