@@ -243,15 +243,17 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
 
 <section id="prec" hidden>
   <iframe id="fprec" title="Solicitud de Precursor Auxiliar" style="width:100%;height:520px;border:0;display:block" loading="lazy"></iframe>
-  <div class="so pa" hidden>
+  <div class="pa">
     <div class="pab">
-      <button class="s" id="pb1" onclick="precVer('pend')">Ver solicitudes</button>
-      <button class="s" id="pb2" onclick="precVer('hist')">Historial</button>
-      <button class="s" onclick="copiarPrec()">Copiar enlace</button>
+      <button class="s" id="pb1" onclick="precVer('pend')">Ver Solicitudes (Comité de Servicio)</button>
+      <button class="s aut" id="pb2" onclick="precVer('hist')" hidden>Historial</button>
+      <button class="s aut" onclick="copiarPrec()" hidden>Copiar enlace</button>
     </div>
-    <div id="lprec"></div>
-    <p><button onclick="precCompartir(this)">Compartir listado por WhatsApp</button></p>
-    <p id="prf" hidden><button class="s" onclick="precRefrescar(this)">Refrescar</button> <small class="mu" id="prfn"></small></p>
+    <div class="aut" hidden>
+      <div id="lprec"></div>
+      <p><button onclick="precCompartir(this)">Compartir listado por WhatsApp</button></p>
+      <p id="prf" hidden><button class="s" onclick="precRefrescar(this)">Refrescar</button> <small class="mu" id="prfn"></small></p>
+    </div>
   </div>
 </section>
 
@@ -406,7 +408,7 @@ function ir(v){
   if(!U&&v!='cap'&&v!='acc'&&v!='prec'){DEST=v;NOTA='Esta sección requiere acceso. Ingresa con tu usuario y contraseña.';v='acc'}
   V=v;
   $d.querySelectorAll('.so').forEach(e=>e.hidden=R!='admin');
-  $('.pa').hidden=R!='admin'&&R!='precursor';
+  {const ok=R=='admin'||R=='precursor';$d.querySelectorAll('.aut').forEach(e=>e.hidden=!ok)}
   {const ok=R=='admin';$('#s13f').disabled=$('#s13b').disabled=!ok;$('#s13n').hidden=ok}
   $d.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
   $d.querySelectorAll('.tabs button').forEach(b=>{b.hidden=R=='precursor'&&b.dataset.v!='prec';b.classList.toggle('on',b.dataset.v==v)});
@@ -1048,16 +1050,21 @@ async function vprec(){
   if(R!='admin'&&R!='precursor'){a.innerHTML='';PVER='';return}
   try{
     const L=await llamar('listar',{hoja:'Precursores'});
-    if(Array.isArray(L)){PREC=L;precDib()}
+    if(Array.isArray(L)){PREC=L;if(PABRIR){PABRIR=0;PVER='pend'}precDib()}
   }catch(e){a.textContent='No se pudo cargar.'}
 }
 const precFin=x=>x.archivado=='si',precRes=x=>(x.aprobado=='si'||x.aprobado=='no')&&x.archivado!='si',precApr=x=>x.aprobado=='si'&&x.archivado!='si';
-function precVer(v){PVER=PVER==v?'':v;precDib()}
+let PABRIR=0;
+function precVer(v){
+  if(!U){DEST='prec';PABRIR=1;NOTA='Para ver las solicitudes ingresa con tu usuario y contraseña.';ir('acc');return}
+  if(R!='admin'&&R!='precursor')return toast('Solo el Comité de Servicio puede ver las solicitudes.',1);
+  PVER=PVER==v?'':v;precDib();
+}
 function precDib(){
   if(R!='admin'&&R!='precursor'){$('#lprec').innerHTML='';return}
   const pe=PREC.filter(x=>!precFin(x)),hi=PREC.filter(precFin);
   const np=pe.filter(x=>x.aprobado!='si'&&x.aprobado!='no').length;
-  $('#pb1').textContent='Ver solicitudes'+(np?` (${np})`:'');
+  $('#pb1').textContent='Ver Solicitudes (Comité de Servicio)'+(np?` · ${np}`:'');
   const na=pe.filter(precRes).length;
   $('#prf').hidden=PVER!='pend'||!na;$('#prfn').textContent=na?`${na} solicitud${na>1?'es':''} resuelta${na>1?'s':''} pasará${na>1?'n':''} al historial`:'';
   $('#pb1').classList.toggle('on',PVER=='pend');$('#pb2').classList.toggle('on',PVER=='hist');
