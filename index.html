@@ -246,6 +246,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
     </div>
     <div id="lprec"></div>
     <p><button onclick="precCompartir(this)">Compartir listado por WhatsApp</button></p>
+    <p id="prf" hidden><button class="s" onclick="precRefrescar(this)">Refrescar</button> <small class="mu" id="prfn"></small></p>
   </div>
 </section>
 
@@ -1043,18 +1044,21 @@ async function vprec(){
     if(Array.isArray(L)){PREC=L;precDib()}
   }catch(e){a.textContent='No se pudo cargar.'}
 }
-const precFin=x=>x.aprobado=='si';
+const precFin=x=>x.archivado=='si',precApr=x=>x.aprobado=='si'&&x.archivado!='si';
 function precVer(v){PVER=PVER==v?'':v;precDib()}
 function precDib(){
   if(R!='admin'){$('#lprec').innerHTML='';return}
   const pe=PREC.filter(x=>!precFin(x)),hi=PREC.filter(precFin);
-  $('#pb1').textContent='Ver solicitudes'+(pe.length?` (${pe.length})`:'');
+  const np=pe.filter(x=>x.aprobado!='si').length;
+  $('#pb1').textContent='Ver solicitudes'+(np?` (${np})`:'');
+  const na=pe.filter(precApr).length;
+  $('#prf').hidden=PVER!='pend'||!na;$('#prfn').textContent=na?`${na} aprobada${na>1?'s':''} pasará${na>1?'n':''} al historial`:'';
   $('#pb1').classList.toggle('on',PVER=='pend');$('#pb2').classList.toggle('on',PVER=='hist');
   const a=$('#lprec');
   if(!PVER){a.innerHTML='';return}
   const L=(PVER=='pend'?pe:hi).slice().sort((x,y)=>String(y.fecha).localeCompare(String(x.fecha)));
   const fe=x=>{const d=new Date(x.fecha);return isNaN(d)?'':d.getDate()+' '+MESES[d.getMonth()].slice(0,3).toLowerCase()+' '+d.getFullYear()};
-  a.innerHTML=(PVER=='hist'?'<p class="mu">Solicitudes ya aprobadas.</p>':'')+(L.length?L.map(x=>`<div class="pr"><span class="pn"><b>${esc(x.nombre)}</b><small>${esc(x.mes)} · recibida ${fe(x)}</small></span>
+  a.innerHTML=(PVER=='hist'?'<p class="mu">Solicitudes aprobadas y archivadas.</p>':'')+(L.length?L.map(x=>`<div class="pr"><span class="pn"><b>${esc(x.nombre)}</b><small>${esc(x.mes)} · recibida ${fe(x)}</small></span>
     <label><input type="checkbox" ${x.aprobado=='si'?'checked':''} onchange="precMarcar('${esc(x.id)}','aprobado',this)">Aprobado</label>
     <button class="pel" onclick="precBorrar('${esc(x.id)}')">Quitar</button></div>`).join(''):`<p>${PVER=='pend'?'No hay solicitudes pendientes.':'Aún no hay solicitudes en el historial.'}</p>`);
 }
@@ -1063,7 +1067,7 @@ function precImg(L){
   const env=(t,f,w)=>{x.font=f;const o=[];let l='';t.split(' ').forEach(p=>{const q=l?l+' '+p:p;if(x.measureText(q).width>w&&l){o.push(l);l=p}else l=q});if(l)o.push(l);return o};
   const T=env('SOLICITUD PARA EL PRECURSORADO AUXILIAR','800 34px '+FT,W-90);
   const hh=40+T.length*44+34;
-  const gr={};L.forEach(r=>(gr[r.mes]??=[]).push(r.nombre));
+  const gr={};L.forEach(r=>String(r.mes).split(',').map(m=>m.trim()).filter(Boolean).forEach(m=>(gr[m]??=[]).push(r.nombre)));
   const ms=Object.keys(gr).sort((a,b)=>(a=='Indefinido')-(b=='Indefinido')||MESES.indexOf(a)-MESES.indexOf(b));
   let h=hh+30;ms.forEach(m=>{h+=84+gr[m].length*40+10});
   h+=40+90;
@@ -1087,8 +1091,8 @@ function precImg(L){
   return new Promise((ok,mal)=>c.toBlob(b=>b?ok(b):mal(new Error('png')),'image/png'));
 }
 async function precCompartir(btn){
-  const L=PREC.filter(precFin);
-  if(!L.length)return toast('No hay solicitudes aprobadas para compartir.',1);
+  const L=PREC.filter(PVER=='hist'?precFin:precApr);
+  if(!L.length)return toast(PVER=='hist'?'El historial está vacío.':'No hay solicitudes aprobadas para compartir.',1);
   btn.disabled=true;
   try{
     const blob=await precImg(L),f=new File([blob],'solicitudes-precursor-auxiliar.png',{type:'image/png'});
@@ -1101,10 +1105,17 @@ async function precCompartir(btn){
   }catch(e){toast('No se pudo crear la imagen.',1)}
   btn.disabled=false;
 }
+async function precRefrescar(b){
+  b.disabled=true;
+  const r=await llamar('precursorArchivar').catch(()=>({}));
+  b.disabled=false;
+  if(r.ok){PREC.forEach(x=>{if(precApr(x))x.archivado='si'});precDib();toast('✓ Pasaron al historial')}
+  else toast('No se pudo refrescar',1);
+}
 async function precMarcar(id,campo,el){
   const v=el.checked?'si':'';el.disabled=true;
   const r=await llamar('precursorMarcar',{id,campo,valor:v}).catch(()=>({}));
-  if(r.ok){const x=PREC.find(y=>y.id==id);if(x)x[campo]=v;precDib()}
+  if(r.ok){const x=PREC.find(y=>y.id==id);if(x){x[campo]=v;if(campo=='aprobado'&&!v)x.archivado=''}precDib()}
   else{el.checked=!el.checked;el.disabled=false;toast('No se pudo guardar',1)}
 }
 async function precBorrar(id){
