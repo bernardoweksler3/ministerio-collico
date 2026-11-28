@@ -15,38 +15,48 @@
 <link rel="icon" type="image/png" sizes="192x192" href="pa-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon-pa.png">
 <style>
-:root{--bg:#f3f6f8;--card:#fff;--tx:#17212a;--mu:#5b6a76;--bd:#dce3e9;--az:#17583d;--ac:#17583d;--v:#2e7d4f;--sh:0 1px 2px rgba(16,40,60,.06),0 6px 18px rgba(16,40,60,.06)}
-:root[data-t=dark]{--bg:#0e151b;--card:#17212a;--tx:#e6edf2;--mu:#9bacb8;--bd:#2a3844;--az:#6fd0a0;--ac:#23865a;--v:#5fc88a;--sh:none}
+:root{--bg:#eef4f1;--card:#fff;--tx:#14211b;--mu:#58685f;--bd:#d9e5de;--ac:#17583d;--ac2:#2f9a68;--soft:#e8f3ed;--gold:#f4d03f;--v:#1f7a4e;--e:#b3261e;--sh:0 2px 4px rgba(16,60,40,.05),0 18px 40px -12px rgba(16,60,40,.18)}
+:root[data-t=dark]{--bg:#0c1511;--card:#14201a;--tx:#e8f1ec;--mu:#9db3a7;--bd:#25382e;--ac:#23865a;--ac2:#3bb27d;--soft:#1a2c23;--v:#5fc88a;--e:#ff8f85;--sh:none}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--tx);background:var(--bg)}
+body{margin:0;font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--tx);background:var(--bg);-webkit-font-smoothing:antialiased}
 body.i{background:transparent}
-header{background:linear-gradient(135deg,#17583d,#2f9a68);color:#fff;padding:12px 16px;font-weight:700;font-size:17px;display:flex;align-items:center;gap:10px}
-header img{width:30px;height:30px;border-radius:8px}
-body.i header{display:none}
-main{max-width:620px;margin:0 auto;padding:14px}
-body.i main{padding:0}
-body.i section{border:0;box-shadow:none;padding:0;background:transparent}
-section{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;box-shadow:var(--sh)}
-h1{font-size:25px;font-weight:800;line-height:1.2;margin:0 0 14px}
-p{margin:8px 0}
-.intro{font-size:17px}
-.cur{margin-top:16px}
-.nota{margin-top:16px;padding:12px 14px;border-radius:10px;background:var(--bg);border:1px solid var(--bd);color:var(--mu);font-size:15px}
-label{display:block;margin:14px 0 4px;font-weight:600}
-input,select{font:inherit;color:var(--tx);background:var(--card);width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:9px}
-button{font:inherit;font-weight:600;padding:10px 18px;border:1px solid var(--ac);background:var(--ac);color:#fff;border-radius:9px;cursor:pointer;margin-top:16px}
-button:disabled{opacity:.5;cursor:not-allowed}
+.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#124632 0%,#1f7a52 55%,#35a974 100%);color:#fff;padding:30px 20px 74px;text-align:center}
+.hero:before,.hero:after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.08)}
+.hero:before{width:240px;height:240px;right:-70px;top:-90px}
+.hero:after{width:170px;height:170px;left:-60px;bottom:-80px}
+.hero img{position:relative;width:68px;height:68px;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,.28),0 0 0 3px rgba(255,255,255,.25)}
+.hero p{position:relative;margin:12px 0 0;font-size:14px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;opacity:.9}
+body.i .hero{display:none}
+main{max-width:600px;margin:-52px auto 0;padding:0 14px 28px;position:relative}
+body.i main{margin:0;padding:0}
+section{background:var(--card);border:1px solid var(--bd);border-radius:22px;padding:26px 22px;box-shadow:var(--sh)}
+body.i section{border:0;box-shadow:none;padding:4px 2px;background:transparent}
+h1{font-size:25px;font-weight:800;line-height:1.18;letter-spacing:-.3px;margin:0 0 16px}
+h1:after{content:"";display:block;width:54px;height:5px;border-radius:3px;margin-top:14px;background:linear-gradient(90deg,var(--gold),var(--ac2))}
+.intro{font-size:17px;color:var(--mu);margin:0 0 6px}
+label{display:block;margin:20px 0 7px;font-weight:700;font-size:14px;letter-spacing:.3px;text-transform:uppercase;color:var(--ac)}
+:root[data-t=dark] label{color:var(--ac2)}
+input,select{font:inherit;font-size:17px;color:var(--tx);background:var(--bg);width:100%;padding:14px 16px;border:2px solid transparent;border-radius:14px;transition:border-color .15s,background .15s,box-shadow .15s;-webkit-appearance:none;appearance:none}
+select{padding-right:44px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%232f9a68' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+input:focus,select:focus{outline:0;border-color:var(--ac2);background-color:var(--card);box-shadow:0 0 0 4px rgba(47,154,104,.18)}
+.cur{margin:22px 0 0;padding:14px 16px 14px 18px;border-left:5px solid var(--gold);border-radius:4px 14px 14px 4px;background:var(--soft);font-size:15.5px;color:var(--tx)}
+button{font:inherit;font-size:17px;font-weight:700;width:100%;margin-top:22px;padding:15px 20px;border:0;border-radius:14px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--ac),var(--ac2));box-shadow:0 10px 22px -8px rgba(31,122,82,.6);transition:transform .12s,box-shadow .12s,filter .12s}
+button:hover{filter:brightness(1.06)}
+button:active{transform:translateY(1px) scale(.995)}
+button:disabled{opacity:.55;cursor:not-allowed;box-shadow:none}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #e0a100;outline-offset:2px}
-#msg{min-height:1.4em;margin-top:10px;font-weight:600}
-#msg.e{color:#b3261e}
-:root[data-t=dark] #msg.e{color:#ff8f85}
-#msg.o{color:var(--v)}
+#msg{min-height:1.4em;margin-top:12px;font-weight:700;text-align:center}
+#msg.e{color:var(--e)}
+#msg.o{color:var(--v);background:var(--soft);padding:12px;border-radius:12px}
+.nota{display:flex;gap:12px;align-items:flex-start;margin:22px 0 0;padding:14px 16px;border-radius:14px;border:1px dashed var(--bd);color:var(--mu);font-size:15px}
+.nota svg{flex:none;margin-top:2px;color:var(--ac2)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <script>try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.t='light'}</script>
 </head>
 <body>
-<header><img src="pa-192.png" alt="" width="30" height="30">Ministerio Congregación Collico</header>
+<div class="hero"><img src="pa-192.png" alt="" width="68" height="68"><p>Ministerio Congregación Collico</p></div>
 <main>
 <section>
   <h1>SOLICITUD PARA EL SERVICIO DE PRECURSOR AUXILIAR</h1>
@@ -60,7 +70,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
     <button id="env" type="submit">Enviar solicitud</button>
     <div id="msg" role="status" aria-live="polite"></div>
   </form>
-  <p class="nota">Durante marzo, abril y en el mes de la visita del superintendente de circuito, los publicadores podrán hacer el precursorado auxiliar con un requisito de 15 horas al mes.</p>
+  <p class="nota"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Durante marzo, abril y en el mes de la visita del superintendente de circuito, los publicadores podrán hacer el precursorado auxiliar con un requisito de 15 horas al mes.</span></p>
 </section>
 </main>
 <script>
