@@ -4,31 +4,34 @@
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Solicitud de Precursorado Auxiliar</title>
-<meta name="theme-color" content="#14465e">
-<meta property="og:title" content="Solicitud de Precursorado Auxiliar">
+<title>Solicitud de Precursor Auxiliar</title>
+<meta name="theme-color" content="#17583d">
+<link rel="manifest" href="precursor.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Precursor Aux.">
+<meta property="og:title" content="Solicitud para el servicio de precursor auxiliar">
 <meta property="og:image" content="https://ministerio-collico.vercel.app/og-image.jpg">
-<link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icon-pa.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="pa-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon-pa.png">
 <style>
-:root{--bg:#f3f6f8;--card:#fff;--tx:#17212a;--mu:#5b6a76;--bd:#dce3e9;--az:#1d5d79;--ac:#1d5d79;--v:#2e7d4f;--sh:0 1px 2px rgba(16,40,60,.06),0 6px 18px rgba(16,40,60,.06)}
-:root[data-t=dark]{--bg:#0e151b;--card:#17212a;--tx:#e6edf2;--mu:#9bacb8;--bd:#2a3844;--az:#6ab7d6;--ac:#2a7a9c;--v:#5fc88a;--sh:none}
+:root{--bg:#f3f6f8;--card:#fff;--tx:#17212a;--mu:#5b6a76;--bd:#dce3e9;--az:#17583d;--ac:#17583d;--v:#2e7d4f;--sh:0 1px 2px rgba(16,40,60,.06),0 6px 18px rgba(16,40,60,.06)}
+:root[data-t=dark]{--bg:#0e151b;--card:#17212a;--tx:#e6edf2;--mu:#9bacb8;--bd:#2a3844;--az:#6fd0a0;--ac:#23865a;--v:#5fc88a;--sh:none}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--tx);background:var(--bg)}
 body.i{background:transparent}
-header{background:linear-gradient(135deg,#14465e,#1f7a99);color:#fff;padding:12px 16px;font-weight:700;font-size:17px;display:flex;align-items:center;gap:10px}
+header{background:linear-gradient(135deg,#17583d,#2f9a68);color:#fff;padding:12px 16px;font-weight:700;font-size:17px;display:flex;align-items:center;gap:10px}
 header img{width:30px;height:30px;border-radius:8px}
 body.i header{display:none}
 main{max-width:620px;margin:0 auto;padding:14px}
 body.i main{padding:0}
 body.i section{border:0;box-shadow:none;padding:0;background:transparent}
 section{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;box-shadow:var(--sh)}
-h1{font-size:21px;margin:0 0 12px}
+h1{font-size:25px;font-weight:800;line-height:1.2;margin:0 0 14px}
 p{margin:8px 0}
 .intro{font-size:17px}
 .cur{margin-top:16px}
-.cur i{font-style:normal}
 .nota{margin-top:16px;padding:12px 14px;border-radius:10px;background:var(--bg);border:1px solid var(--bd);color:var(--mu);font-size:15px}
 label{display:block;margin:14px 0 4px;font-weight:600}
 input,select{font:inherit;color:var(--tx);background:var(--card);width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:9px}
@@ -43,10 +46,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 <script>try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.t='light'}</script>
 </head>
 <body>
-<header><img src="icon-192.png" alt="" width="30" height="30">Ministerio Congregación Collico</header>
+<header><img src="pa-192.png" alt="" width="30" height="30">Ministerio Congregación Collico</header>
 <main>
 <section>
-  <h1>Solicitud de Precursorado Auxiliar</h1>
+  <h1>SOLICITUD PARA EL SERVICIO DE PRECURSOR AUXILIAR</h1>
   <p class="intro">Debido a mi amor a Jehová y mi deseo de ayudar al prójimo a aprender acerca de él y sus amorosos propósitos, quisiera aumentar mi participación en el servicio del campo siendo precursor auxiliar durante el período indicado abajo:</p>
   <form id="f" autocomplete="off">
     <label for="nombre">Nombre</label>
@@ -82,6 +85,7 @@ $('#f').addEventListener('submit',async e=>{
   }catch(err){dec('No se pudo conectar. Intenta de nuevo.','e')}
   b.disabled=false;alto();
 });
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
 </html>

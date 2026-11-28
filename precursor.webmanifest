@@ -1,0 +1,17 @@
+{
+  "name": "Precursor Auxiliar",
+  "short_name": "Precursor Aux.",
+  "description": "Solicitud para el servicio de precursor auxiliar",
+  "start_url": "/precursor.html",
+  "display": "standalone",
+  "background_color": "#17583d",
+  "theme_color": "#17583d",
+  "lang": "es",
+  "icons": [
+    {"src": "pa-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "pa-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "pa-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "id": "/precursor.html",
+  "scope": "/precursor.html"
+}
