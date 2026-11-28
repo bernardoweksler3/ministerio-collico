@@ -243,11 +243,11 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
 
 <section id="prec" hidden>
   <iframe id="fprec" title="Solicitud de Precursor Auxiliar" style="width:100%;height:520px;border:0;display:block" loading="lazy"></iframe>
+  <p class="aut" hidden style="margin:12px 0 0"><button class="s" onclick="copiarPrec()">Copiar enlace</button></p>
   <div class="pa">
     <div class="pab">
       <button class="s" id="pb1" onclick="precVer('pend')">Ver Solicitudes (Comité de Servicio)</button>
       <button class="s aut" id="pb2" onclick="precVer('hist')" hidden>Historial</button>
-      <button class="s aut" onclick="copiarPrec()" hidden>Copiar enlace</button>
     </div>
     <div class="aut" hidden>
       <div id="lprec"></div>
