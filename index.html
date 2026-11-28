@@ -245,6 +245,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
       <button class="s" onclick="copiarPrec()">Copiar enlace</button>
     </div>
     <div id="lprec"></div>
+    <p><button onclick="precCompartir(this)">Compartir listado por WhatsApp</button></p>
   </div>
 </section>
 
@@ -1042,7 +1043,7 @@ async function vprec(){
     if(Array.isArray(L)){PREC=L;precDib()}
   }catch(e){a.textContent='No se pudo cargar.'}
 }
-const precFin=x=>x.aprobado=='si'&&x.anunciado=='si';
+const precFin=x=>x.aprobado=='si';
 function precVer(v){PVER=PVER==v?'':v;precDib()}
 function precDib(){
   if(R!='admin'){$('#lprec').innerHTML='';return}
@@ -1053,10 +1054,52 @@ function precDib(){
   if(!PVER){a.innerHTML='';return}
   const L=(PVER=='pend'?pe:hi).slice().sort((x,y)=>String(y.fecha).localeCompare(String(x.fecha)));
   const fe=x=>{const d=new Date(x.fecha);return isNaN(d)?'':d.getDate()+' '+MESES[d.getMonth()].slice(0,3).toLowerCase()+' '+d.getFullYear()};
-  a.innerHTML=(PVER=='hist'?'<p class="mu">Solicitudes ya aprobadas y anunciadas.</p>':'')+(L.length?L.map(x=>`<div class="pr"><span class="pn"><b>${esc(x.nombre)}</b><small>${esc(x.mes)} · recibida ${fe(x)}</small></span>
+  a.innerHTML=(PVER=='hist'?'<p class="mu">Solicitudes ya aprobadas.</p>':'')+(L.length?L.map(x=>`<div class="pr"><span class="pn"><b>${esc(x.nombre)}</b><small>${esc(x.mes)} · recibida ${fe(x)}</small></span>
     <label><input type="checkbox" ${x.aprobado=='si'?'checked':''} onchange="precMarcar('${esc(x.id)}','aprobado',this)">Aprobado</label>
-    <label><input type="checkbox" ${x.anunciado=='si'?'checked':''} onchange="precMarcar('${esc(x.id)}','anunciado',this)">Anunciado</label>
     <button class="pel" onclick="precBorrar('${esc(x.id)}')">Quitar</button></div>`).join(''):`<p>${PVER=='pend'?'No hay solicitudes pendientes.':'Aún no hay solicitudes en el historial.'}</p>`);
+}
+function precImg(L){
+  const W=720,E=2,FT='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',c=$d.createElement('canvas'),x=c.getContext('2d');
+  const env=(t,f,w)=>{x.font=f;const o=[];let l='';t.split(' ').forEach(p=>{const q=l?l+' '+p:p;if(x.measureText(q).width>w&&l){o.push(l);l=p}else l=q});if(l)o.push(l);return o};
+  const T=env('SOLICITUD PARA EL PRECURSORADO AUXILIAR','800 34px '+FT,W-90);
+  const hh=40+T.length*44+34;
+  const gr={};L.forEach(r=>(gr[r.mes]??=[]).push(r.nombre));
+  const ms=Object.keys(gr).sort((a,b)=>(a=='Indefinido')-(b=='Indefinido')||MESES.indexOf(a)-MESES.indexOf(b));
+  let h=hh+30;ms.forEach(m=>{h+=84+gr[m].length*40+10});
+  h+=40+90;
+  c.width=W*E;c.height=h*E;x.scale(E,E);
+  x.fillStyle='#fff';x.fillRect(0,0,W,h);
+  const g=x.createLinearGradient(0,0,W,hh);g.addColorStop(0,'#124632');g.addColorStop(.6,'#1f7a52');g.addColorStop(1,'#35a974');
+  x.fillStyle=g;x.fillRect(0,0,W,hh);
+  x.fillStyle='rgba(255,255,255,.08)';x.beginPath();x.arc(W-30,10,120,0,7);x.fill();
+  x.fillStyle='#f4d03f';x.fillRect(W/2-40,hh-22,80,6);
+  x.fillStyle='#fff';x.textAlign='center';x.font='800 34px '+FT;T.forEach((t,i)=>x.fillText(t,W/2,40+34+i*44));
+  let y=hh+30;
+  ms.forEach(m=>{
+    x.textAlign='left';x.fillStyle='#e8f3ed';x.beginPath();x.roundRect(36,y,W-72,48,12);x.fill();
+    x.fillStyle='#17583d';x.font='800 26px '+FT;x.fillText(m.toUpperCase(),54,y+34);
+    y+=84;x.fillStyle='#14211b';x.font='500 26px '+FT;
+    gr[m].forEach(n=>{x.fillStyle='#2f9a68';x.beginPath();x.arc(60,y-9,5,0,7);x.fill();x.fillStyle='#14211b';x.fillText(n,80,y);y+=40});
+    y+=10;
+  });
+  y+=10;x.fillStyle='#dce8e1';x.fillRect(36,y,W-72,2);
+  x.textAlign='center';x.fillStyle='#17583d';x.font='italic 700 26px '+FT;x.fillText('Aprobado(s) por el Comité de Servicio.',W/2,y+52);
+  return new Promise((ok,mal)=>c.toBlob(b=>b?ok(b):mal(new Error('png')),'image/png'));
+}
+async function precCompartir(btn){
+  const L=PREC.filter(precFin);
+  if(!L.length)return toast('No hay solicitudes aprobadas para compartir.',1);
+  btn.disabled=true;
+  try{
+    const blob=await precImg(L),f=new File([blob],'solicitudes-precursor-auxiliar.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){
+      try{await navigator.share({files:[f],title:'Solicitud para el precursorado auxiliar'});btn.disabled=false;return}catch(e){if(e.name=='AbortError'){btn.disabled=false;return}}
+    }
+    const a=$d.createElement('a');a.href=URL.createObjectURL(blob);a.download='solicitudes-precursor-auxiliar.png';$d.body.appendChild(a);a.click();a.remove();
+    toast('Imagen guardada. Adjúntala en WhatsApp.');
+    window.open('https://wa.me/','_blank');
+  }catch(e){toast('No se pudo crear la imagen.',1)}
+  btn.disabled=false;
 }
 async function precMarcar(id,campo,el){
   const v=el.checked?'si':'';el.disabled=true;
