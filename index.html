@@ -58,7 +58,12 @@ summary{cursor:pointer;font-weight:600;color:var(--az);margin:6px 0}
 .pr .pn{flex:1 1 180px;min-width:0}
 .pr .pn b{display:block}.pr .pn small{color:var(--mu)}
 .pr label{display:inline-flex;align-items:center;gap:6px;margin:0;font-weight:600;cursor:pointer}
-.pr input{width:20px;height:20px;padding:0;accent-color:#2a7f55}
+.dec{display:inline-flex;gap:8px}
+.dec button{width:42px;height:42px;padding:0;border-radius:50%;font-size:20px;line-height:1;background:transparent;border:2px solid var(--bd);color:var(--mu)}
+.dec button.ok:hover,.dec button.ok.on{background:#2a7f55;border-color:#2a7f55;color:#fff}
+.dec button.no:hover,.dec button.no.on{background:var(--pel);border-color:var(--pel);color:#fff}
+.pr.rech .pn b{text-decoration:line-through;opacity:.6}
+.pr.rech .pn small{opacity:.6}
 .tabs button[data-v=prec]{background:#3f9d6f;color:#fff}
 .tabs button[data-v=prec].on{background:#2a7f55;box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
 .pin{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;margin-left:7px;border-radius:10px;background:#e53935;color:#fff;font-size:11.5px;font-weight:700;line-height:1;vertical-align:1px;box-shadow:0 0 0 2px var(--card)}
@@ -1044,22 +1049,22 @@ async function vprec(){
     if(Array.isArray(L)){PREC=L;precDib()}
   }catch(e){a.textContent='No se pudo cargar.'}
 }
-const precFin=x=>x.archivado=='si',precApr=x=>x.aprobado=='si'&&x.archivado!='si';
+const precFin=x=>x.archivado=='si',precRes=x=>(x.aprobado=='si'||x.aprobado=='no')&&x.archivado!='si',precApr=x=>x.aprobado=='si'&&x.archivado!='si';
 function precVer(v){PVER=PVER==v?'':v;precDib()}
 function precDib(){
   if(R!='admin'){$('#lprec').innerHTML='';return}
   const pe=PREC.filter(x=>!precFin(x)),hi=PREC.filter(precFin);
-  const np=pe.filter(x=>x.aprobado!='si').length;
+  const np=pe.filter(x=>x.aprobado!='si'&&x.aprobado!='no').length;
   $('#pb1').textContent='Ver solicitudes'+(np?` (${np})`:'');
-  const na=pe.filter(precApr).length;
-  $('#prf').hidden=PVER!='pend'||!na;$('#prfn').textContent=na?`${na} aprobada${na>1?'s':''} pasará${na>1?'n':''} al historial`:'';
+  const na=pe.filter(precRes).length;
+  $('#prf').hidden=PVER!='pend'||!na;$('#prfn').textContent=na?`${na} solicitud${na>1?'es':''} resuelta${na>1?'s':''} pasará${na>1?'n':''} al historial`:'';
   $('#pb1').classList.toggle('on',PVER=='pend');$('#pb2').classList.toggle('on',PVER=='hist');
   const a=$('#lprec');
   if(!PVER){a.innerHTML='';return}
   const L=(PVER=='pend'?pe:hi).slice().sort((x,y)=>String(y.fecha).localeCompare(String(x.fecha)));
   const fe=x=>{const d=new Date(x.fecha);return isNaN(d)?'':d.getDate()+' '+MESES[d.getMonth()].slice(0,3).toLowerCase()+' '+d.getFullYear()};
-  a.innerHTML=(PVER=='hist'?'<p class="mu">Solicitudes aprobadas y archivadas.</p>':'')+(L.length?L.map(x=>`<div class="pr"><span class="pn"><b>${esc(x.nombre)}</b><small>${esc(x.mes)} · recibida ${fe(x)}</small></span>
-    <label><input type="checkbox" ${x.aprobado=='si'?'checked':''} onchange="precMarcar('${esc(x.id)}','aprobado',this)">Aprobado</label>
+  a.innerHTML=(PVER=='hist'?'<p class="mu">Solicitudes aprobadas y archivadas.</p>':'')+(L.length?L.map(x=>`<div class="pr${x.aprobado=='no'?' rech':''}"><span class="pn"><b>${esc(x.nombre)}</b><small>${esc(x.mes)} · recibida ${fe(x)}</small></span>
+    <span class="dec"><button class="ok${x.aprobado=='si'?' on':''}" aria-label="Aprobar" title="Aprobar" aria-pressed="${x.aprobado=='si'}" onclick="precMarcar('${esc(x.id)}','si',this)">✓</button><button class="no${x.aprobado=='no'?' on':''}" aria-label="Rechazar" title="Rechazar" aria-pressed="${x.aprobado=='no'}" onclick="precMarcar('${esc(x.id)}','no',this)">✕</button></span>
     <button class="pel" onclick="precBorrar('${esc(x.id)}')">Quitar</button></div>`).join(''):`<p>${PVER=='pend'?'No hay solicitudes pendientes.':'Aún no hay solicitudes en el historial.'}</p>`);
 }
 function precImg(L){
@@ -1067,8 +1072,8 @@ function precImg(L){
   const env=(t,f,w)=>{x.font=f;const o=[];let l='';t.split(' ').forEach(p=>{const q=l?l+' '+p:p;if(x.measureText(q).width>w&&l){o.push(l);l=p}else l=q});if(l)o.push(l);return o};
   const T=env('SOLICITUD PARA EL PRECURSORADO AUXILIAR','800 34px '+FT,W-90);
   const hh=40+T.length*44+34;
-  const gr={};L.forEach(r=>String(r.mes).split(',').map(m=>m.trim()).filter(Boolean).forEach(m=>(gr[m]??=[]).push(r.nombre)));
-  const ms=Object.keys(gr).sort((a,b)=>(a=='Indefinido')-(b=='Indefinido')||MESES.indexOf(a)-MESES.indexOf(b));
+  const gr={};L.forEach(r=>(gr[String(r.mes).split(',').map(m=>m.trim()).filter(Boolean).join(', ')]??=[]).push(r.nombre));
+  const ix=k=>k=='Indefinido'?99:Math.min(...k.split(', ').map(m=>MESES.indexOf(m))),ms=Object.keys(gr).sort((a,b)=>ix(a)-ix(b)||a.split(', ').length-b.split(', ').length);
   let h=hh+30;ms.forEach(m=>{h+=84+gr[m].length*40+10});
   h+=40+90;
   c.width=W*E;c.height=h*E;x.scale(E,E);
@@ -1091,7 +1096,7 @@ function precImg(L){
   return new Promise((ok,mal)=>c.toBlob(b=>b?ok(b):mal(new Error('png')),'image/png'));
 }
 async function precCompartir(btn){
-  const L=PREC.filter(PVER=='hist'?precFin:precApr);
+  const L=PREC.filter(x=>x.aprobado=='si'&&(PVER=='hist'?precFin(x):x.archivado!='si'));
   if(!L.length)return toast(PVER=='hist'?'El historial está vacío.':'No hay solicitudes aprobadas para compartir.',1);
   btn.disabled=true;
   try{
@@ -1109,14 +1114,16 @@ async function precRefrescar(b){
   b.disabled=true;
   const r=await llamar('precursorArchivar').catch(()=>({}));
   b.disabled=false;
-  if(r.ok){PREC.forEach(x=>{if(precApr(x))x.archivado='si'});precDib();toast('✓ Pasaron al historial')}
+  if(r.ok){PREC.forEach(x=>{if(precRes(x))x.archivado='si'});precDib();toast('✓ Pasaron al historial')}
   else toast('No se pudo refrescar',1);
 }
-async function precMarcar(id,campo,el){
-  const v=el.checked?'si':'';el.disabled=true;
-  const r=await llamar('precursorMarcar',{id,campo,valor:v}).catch(()=>({}));
-  if(r.ok){const x=PREC.find(y=>y.id==id);if(x){x[campo]=v;if(campo=='aprobado'&&!v)x.archivado=''}precDib()}
-  else{el.checked=!el.checked;el.disabled=false;toast('No se pudo guardar',1)}
+async function precMarcar(id,nuevo,el){
+  const x=PREC.find(y=>y.id==id);if(!x)return;
+  const v=x.aprobado==nuevo?'':nuevo;
+  el.parentNode.querySelectorAll('button').forEach(b=>b.disabled=true);
+  const r=await llamar('precursorMarcar',{id,campo:'aprobado',valor:v}).catch(()=>({}));
+  if(r.ok){x.aprobado=v;if(!v)x.archivado='';precDib()}
+  else{el.parentNode.querySelectorAll('button').forEach(b=>b.disabled=false);toast('No se pudo guardar',1)}
 }
 async function precBorrar(id){
   if(!confirm('¿Quitar esta solicitud?'))return;
