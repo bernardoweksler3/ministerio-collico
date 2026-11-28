@@ -1140,7 +1140,7 @@ async function precBorrar(id){
   if(r.ok){PREC=PREC.filter(x=>x.id!=id);precDib()}else alert('No se pudo quitar.');
 }
 function copiarPrec(){
-  const u=new URL('precursor.html',location.href).href;
+  const u=new URL('precursor.html?v=2',location.href).href;
   (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>toast('✓ Enlace copiado')).catch(()=>prompt('Copia este enlace:',u));
 }
 async function est(){
