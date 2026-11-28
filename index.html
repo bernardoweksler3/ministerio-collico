@@ -200,6 +200,7 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
   <button data-v="ter" onclick="ir('ter')">Territorios</button>
   <button data-v="prog" onclick="ir('prog')">Programa</button>
   <button data-v="est" onclick="ir('est')">Estadísticas</button>
+  <button data-v="prec" onclick="ir('prec')">Precursorado</button>
 </nav>
 
 <section id="cap">
@@ -223,6 +224,15 @@ try{document.documentElement.dataset.t=localStorage.t||(matchMedia('(prefers-col
   <p class="mu">Personas que se ofrecieron como capitanes, de hoy en adelante. Elige quién será capitán de cada horario.</p>
   <div id="lofr"></div>
   <p class="so" hidden><button class="pel" onclick="borrarTodo('Inscripciones','todos los ofrecimientos')">Borrar todo</button></p>
+</section>
+
+<section id="prec" hidden>
+  <iframe id="fprec" title="Solicitud de Precursorado Auxiliar" style="width:100%;height:520px;border:0;display:block" loading="lazy"></iframe>
+  <div class="so" hidden>
+    <h2>Solicitudes recibidas</h2>
+    <div id="lprec"></div>
+    <p><a href="precursor.html" target="_blank" rel="noopener">Enlace independiente</a> · <button class="s" onclick="copiarPrec()">Copiar enlace</button></p>
+  </div>
 </section>
 
 <section id="pto" hidden><h1>Puntos de encuentro</h1><div id="lpto"></div><p class="so" hidden><button class="pel" onclick="borrarTodo('Puntos','todos los puntos de encuentro')">Borrar todo</button></p></section>
@@ -372,14 +382,14 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const ICO_IN='<svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>',
   ICO_USR='<svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>';
 function ir(v){
-  if(!U&&v!='cap'&&v!='acc'){DEST=v;NOTA='Esta sección requiere acceso. Ingresa con tu usuario y contraseña.';v='acc'}
+  if(!U&&v!='cap'&&v!='acc'&&v!='prec'){DEST=v;NOTA='Esta sección requiere acceso. Ingresa con tu usuario y contraseña.';v='acc'}
   V=v;
   $d.querySelectorAll('.so').forEach(e=>e.hidden=R!='admin');
   {const ok=R=='admin';$('#s13f').disabled=$('#s13b').disabled=!ok;$('#s13n').hidden=ok}
   $d.querySelectorAll('section').forEach(s=>s.hidden=s.id!=v);
   $d.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
   $('#pie').innerHTML=(U?ICO_USR:ICO_IN)+'<span>'+esc(U?'Acceso ('+U+')':'Acceso')+'</span>';
-  ({cap:pub,ofr:cap,pto:()=>lista('Puntos','#lpto'),ter:()=>sub(ST),prog,acc:vacc,est})[v]();
+  ({cap:pub,ofr:cap,pto:()=>lista('Puntos','#lpto'),ter:()=>sub(ST),prog,acc:vacc,est,prec:vprec})[v]();
   badge();
 }
 function salir(forzado){
@@ -1007,6 +1017,26 @@ async function quitar(b){
   if(!confirm('¿Eliminar el ofrecimiento de '+b.dataset.n+'?'))return;
   b.disabled=true;
   await llamar('inscripcionBorrar',{fecha:b.dataset.f,turno:b.dataset.t,nombre:b.dataset.n});cap();
+}
+addEventListener('message',e=>{if(e.origin==location.origin&&e.data&&e.data.prec)$('#fprec').style.height=e.data.prec+'px'});
+async function vprec(){
+  const f=$('#fprec');if(!f.getAttribute('src'))f.src='precursor.html?i=1';
+  const a=$('#lprec');if(R!='admin'){a.innerHTML='';return}
+  a.textContent='Cargando…';
+  try{
+    const L=await llamar('listar',{hoja:'Precursores'});
+    if(!Array.isArray(L))return;
+    a.innerHTML=L.length?L.slice().sort((x,y)=>String(y.fecha).localeCompare(String(x.fecha))).map(x=>`<div class="tn"><b>${esc(x.nombre)}</b><span>${esc(x.mes)}</span><button class="pel" onclick="precBorrar('${esc(x.id)}')">Quitar</button></div>`).join(''):'<p>Aún no hay solicitudes.</p>';
+  }catch(e){a.textContent='No se pudo cargar.'}
+}
+async function precBorrar(id){
+  if(!confirm('¿Quitar esta solicitud?'))return;
+  const r=await llamar('precursorBorrar',{id});
+  if(r.ok)vprec();else alert('No se pudo quitar.');
+}
+function copiarPrec(){
+  const u=new URL('precursor.html',location.href).href;
+  (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>toast('✓ Enlace copiado')).catch(()=>prompt('Copia este enlace:',u));
 }
 async function est(){
   const box=$('#graf');box.textContent='Cargando…';
